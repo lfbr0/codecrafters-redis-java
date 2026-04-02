@@ -104,7 +104,7 @@ public class MemoryManager {
      * @param values the values to push to the list
      * @return the length of the list after the push operation
      */
-    public static int pushToList(String listKey, RedisMessage ... values) {
+    public static int appendToList(String listKey, RedisMessage ... values) {
         ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
                 .getLock("list[" + listKey + "]")
                 .writeLock();
@@ -118,6 +118,41 @@ public class MemoryManager {
             return list.size();
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    /**
+     * Retrieves a range of elements from the list stored at listKey. The range is specified by the start and end indices.
+     * @param listKey the key of the list to retrieve elements from
+     * @param start the starting index of the range (inclusive)
+     * @param end the ending index of the range (inclusive)
+     * @return an array of RedisMessage containing the elements in the specified range, or empty list
+     */
+    public static List<RedisMessage> rangeFromList(String listKey, int start, int end) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("list[" + listKey + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            Logger.info("Getting list from list: " + listKey);
+
+            List<RedisMessage> list = listStore.get(listKey);
+            if (list == null) {
+                return List.of();
+            }
+
+            if (start >= list.size()) {
+                return List.of();
+            } else if (end >= list.size()) {
+                end = list.size() - 1;
+            } else if (end < start) {
+                return List.of();
+            }
+
+            return list.subList(start, end + 1);
+        } finally {
+            readLock.unlock();
         }
     }
 }

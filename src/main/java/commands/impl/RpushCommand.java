@@ -19,7 +19,7 @@ public class RpushCommand implements Command {
             args[i - 1] = context.getArguments().get(i);
         }
         String key = (String) context.getArguments().getFirst().getContent();
-        int newSize = MemoryManager.pushToList(key, args);
+        int newSize = MemoryManager.appendToList(key, args);
         context.getOutputStream().write(RedisSerializer.integer(newSize));
     }
 

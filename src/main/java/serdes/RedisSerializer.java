@@ -1,5 +1,7 @@
 package serdes;
 
+import java.util.List;
+
 public class RedisSerializer {
 
     private RedisSerializer() {}
@@ -28,9 +30,10 @@ public class RedisSerializer {
                 if (redisMessage.getContent() == null) {
                     sb.append("*-1\r\n");
                 } else {
-                    sb.append("*").append(((Iterable<?>) redisMessage.getContent()).spliterator().getExactSizeIfKnown()).append("\r\n");
-                    for (Object item : (Iterable<?>) redisMessage.getContent()) {
-                        sb.append(serialize((RedisMessage) item));
+                    List<RedisMessage> messages = (List<RedisMessage>) redisMessage.getContent();
+                    sb.append("*").append(messages.size()).append("\r\n");
+                    for (RedisMessage msg : messages) {
+                        sb.append(new String(serialize(msg)));
                     }
                 }
                 break;
@@ -50,6 +53,13 @@ public class RedisSerializer {
         RedisMessage redisMessage = new RedisMessage();
         redisMessage.setType(RedisMessage.RedisMessageType.INTEGER);
         redisMessage.setContent(value);
+        return serialize(redisMessage);
+    }
+
+    public static byte[] list(List<RedisMessage> messages) {
+        RedisMessage redisMessage = new RedisMessage();
+        redisMessage.setType(RedisMessage.RedisMessageType.ARRAY);
+        redisMessage.setContent(messages);
         return serialize(redisMessage);
     }
 }
