@@ -1,33 +1,21 @@
+import lombok.extern.slf4j.Slf4j;
+import server.RedisServer;
+import server.RedisServerConfiguration;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+@Slf4j
 public class Main {
-  public static void main(String[] args){
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
-    System.out.println("Logs from your program will appear here!");
+  public static void main(String[] args) {
 
-    //  Uncomment the code below to pass the first stage
-    ServerSocket serverSocket = null;
-    Socket clientSocket = null;
-    int port = 6379;
-    try {
-      serverSocket = new ServerSocket(port);
-      // Since the tester restarts your program quite often, setting SO_REUSEADDR
-      // ensures that we don't run into 'Address already in use' errors
-      serverSocket.setReuseAddress(true);
-      // Wait for connection from client.
-      clientSocket = serverSocket.accept();
-    } catch (IOException e) {
-      System.out.println("IOException: " + e.getMessage());
-    } finally {
-      try {
-        if (clientSocket != null) {
-          clientSocket.close();
-        }
-      } catch (IOException e) {
-        System.out.println("IOException: " + e.getMessage());
-      }
+    try (RedisServer redisServer = new RedisServer()) {
+      redisServer.start(RedisServerConfiguration.defaultConfiguration());
+    } catch (Exception e) {
+      log.error("Error starting Redis server: {}", e.getMessage(), e);
+      throw new RuntimeException(e);
     }
   }
+
 }
