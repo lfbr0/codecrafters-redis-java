@@ -17,7 +17,8 @@ public class CommandRouter {
             new GetCommand(),
             // List commands
             new RpushCommand(),
-            new LrangeCommand()
+            new LrangeCommand(),
+            new LpushCommand()
     };
 
     /**

@@ -122,6 +122,31 @@ public class MemoryManager {
     }
 
     /**
+     * Pushes the given values to the beginning of the list stored at listKey. If the list does not exist, it will be created.
+     * @param listKey the key of the list to push values to
+     * @param values the values to push to the list
+     * @return the length of the list after the push operation
+     */
+    public static int prependToList(String listKey, RedisMessage ... values) {
+        ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
+                .getLock("list[" + listKey + "]")
+                .writeLock();
+
+        try {
+            writeLock.lock();
+            Logger.info("Prepending values: " + List.of(values) + " to list: " + listKey);
+            List<RedisMessage> list = listStore
+                    .computeIfAbsent(listKey, k -> new CopyOnWriteArrayList<>());
+            for (RedisMessage value : values) {
+                list.addFirst(value);
+            }
+            return list.size();
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    /**
      * Retrieves a range of elements from the list stored at listKey. The range is specified by the start and end indices.
      * @param listKey the key of the list to retrieve elements from
      * @param start the starting index of the range (inclusive)
