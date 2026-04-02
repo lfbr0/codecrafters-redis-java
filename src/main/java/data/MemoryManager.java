@@ -142,14 +142,21 @@ public class MemoryManager {
                 return List.of();
             }
 
+            // if start or end negative, it's inverse from start
+            start = start < 0 ? list.size() + start : start;
+            end = end < 0 ? list.size() + end : end;
+
             if (start >= list.size()) {
                 return List.of();
             } else if (end >= list.size()) {
                 end = list.size() - 1;
             } else if (end < start) {
                 return List.of();
+            } else if (start < 0) {
+                start = 0;
             }
 
+            Logger.info("Getting list from list: " + listKey + " with start: " + start + " and end: " + end);
             return list.subList(start, end + 1);
         } finally {
             readLock.unlock();

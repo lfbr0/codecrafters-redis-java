@@ -23,6 +23,12 @@ public class RedisClientHandler implements Runnable {
         try {
             while (socket.isConnected()) {
                 RedisMessage message = RedisDeserializer.deserialize(socket.getInputStream());
+                if (message == null) {
+                    Logger.error("Received null message from client. Closing connection.");
+                    socket.close();
+                    return;
+                }
+
                 Logger.info("Received message: " + message);
 
                 if (message.getType() != ARRAY) {
@@ -34,7 +40,7 @@ public class RedisClientHandler implements Runnable {
             }
             socket.getOutputStream().write("+PONG\r\n".getBytes());
         } catch (Exception e) {
-            Logger.error("Failed to interpret command: {}", e.getMessage(), e);
+            Logger.error("Failed to interpret command: " + e.getMessage(), e);
         }
     }
 

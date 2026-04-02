@@ -23,7 +23,8 @@ public class RedisDeserializer {
 
             int firstByte = inputStream.read();
             if (firstByte == -1) {
-                throw new IOException("End of stream reached while trying to read Redis message.");
+                Logger.info("End of stream reached while trying to read Redis message.");
+                return null; // End of stream, return null to indicate no more messages
             }
 
             switch (firstByte) {

@@ -3,12 +3,12 @@ package logger;
 public class Logger {
 
     public static void error(String message, Object... args) {
-        System.out.println(String.format(message, args));
+        System.err.printf((message) + "%n", args);
     }
 
     public static void error(String message, Throwable t) {
-        System.out.println(message);
-        t.printStackTrace();
+        System.err.println(message);
+        t.printStackTrace(System.err);
     }
 
     public static void info(String message, Object... args) {
