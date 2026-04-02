@@ -4,11 +4,10 @@ import logger.Logger;
 import serdes.RedisMessage;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -18,10 +17,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class MemoryManager {
 
     // Holds the key-value pairs in memory
-    private static Map<String, RedisMessage> keyValueStore = new ConcurrentHashMap<>();
+    private static final Map<String, RedisMessage> keyValueStore = new ConcurrentHashMap<>();
     // For expiry management, removes concurrently expired keys
-    private static ScheduledExecutorService expiryExecutorService =
+    private static final ScheduledExecutorService expiryExecutorService =
             new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "expiry-thread"));
+    // For lists in rpush
+    private static final Map<String, List<RedisMessage>> listStore = new ConcurrentHashMap<>();
 
 
     /**
@@ -94,6 +95,29 @@ public class MemoryManager {
             return keyValueStore.get(key);
         } finally {
             readLock.unlock();
+        }
+    }
+
+    /**
+     * Pushes the given values to the end of the list stored at listKey. If the list does not exist, it will be created.
+     * @param listKey the key of the list to push values to
+     * @param values the values to push to the list
+     * @return the length of the list after the push operation
+     */
+    public static int pushToList(String listKey, RedisMessage ... values) {
+        ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
+                .getLock("list[" + listKey + "]")
+                .writeLock();
+
+        try {
+            writeLock.lock();
+            Logger.info("Pushing values: " + List.of(values) + " to list: " + listKey);
+            List<RedisMessage> list = listStore
+                    .computeIfAbsent(listKey, k -> new CopyOnWriteArrayList<>());
+            list.addAll(Arrays.asList(values));
+            return list.size();
+        } finally {
+            writeLock.unlock();
         }
     }
 }

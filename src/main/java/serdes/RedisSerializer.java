@@ -45,4 +45,11 @@ public class RedisSerializer {
     public static byte[] okString() {
         return "+OK\r\n".getBytes();
     }
+
+    public static byte[] integer(int value) {
+        RedisMessage redisMessage = new RedisMessage();
+        redisMessage.setType(RedisMessage.RedisMessageType.INTEGER);
+        redisMessage.setContent(value);
+        return serialize(redisMessage);
+    }
 }

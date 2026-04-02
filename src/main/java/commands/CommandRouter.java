@@ -1,9 +1,6 @@
 package commands;
 
-import commands.impl.EchoCommand;
-import commands.impl.GetCommand;
-import commands.impl.PingCommand;
-import commands.impl.SetCommand;
+import commands.impl.*;
 import logger.Logger;
 
 /**
@@ -17,7 +14,9 @@ public class CommandRouter {
             new EchoCommand(),
             // Set & Get commands
             new SetCommand(),
-            new GetCommand()
+            new GetCommand(),
+            // List commands
+            new RpushCommand()
     };
 
     /**
