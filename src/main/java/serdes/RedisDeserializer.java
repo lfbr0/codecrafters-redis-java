@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class RedisDeserializer {
 
+    private RedisDeserializer() {}
+
     /**
      * Deserializes a Redis message from the given InputStream.
      * @param inputStream socket input stream to read the Redis message from
