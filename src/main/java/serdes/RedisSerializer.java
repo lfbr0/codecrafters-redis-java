@@ -4,7 +4,7 @@ public class RedisSerializer {
 
     private RedisSerializer() {}
 
-    public static String serialize(final RedisMessage redisMessage) {
+    public static byte[] serialize(final RedisMessage redisMessage) {
         StringBuilder sb = new StringBuilder();
         switch (redisMessage.getType()) {
             case SIMPLE_STRING:
@@ -35,7 +35,14 @@ public class RedisSerializer {
                 }
                 break;
         }
-        return sb.toString();
+        return sb.toString().getBytes();
     }
 
+    public static byte[] nullBulkString() {
+        return "$-1\r\n".getBytes();
+    }
+
+    public static byte[] okString() {
+        return "+OK\r\n".getBytes();
+    }
 }

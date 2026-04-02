@@ -1,7 +1,9 @@
 package commands;
 
 import commands.impl.EchoCommand;
+import commands.impl.GetCommand;
 import commands.impl.PingCommand;
+import commands.impl.SetCommand;
 import logger.Logger;
 
 /**
@@ -12,7 +14,10 @@ public class CommandRouter {
 
     private final static Command[] COMMANDS = {
             new PingCommand(),
-            new EchoCommand()
+            new EchoCommand(),
+            // Set & Get commands
+            new SetCommand(),
+            new GetCommand()
     };
 
     /**

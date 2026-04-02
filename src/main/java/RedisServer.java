@@ -1,6 +1,3 @@
-package server;
-
-import client.RedisClientHandler;
 import logger.Logger;
 
 import java.io.IOException;
@@ -9,9 +6,12 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static java.util.concurrent.Executors.newCachedThreadPool;
+
 public class RedisServer implements AutoCloseable {
 
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final ExecutorService executorService =
+            newCachedThreadPool(r -> new Thread(r, "client-handler-thread"));
     private volatile boolean running = true;
 
     public void start(RedisServerConfiguration redisServerConfiguration) throws IOException {

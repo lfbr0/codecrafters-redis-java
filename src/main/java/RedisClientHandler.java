@@ -1,13 +1,9 @@
-package client;
-
-import commands.Command;
 import commands.CommandContext;
 import commands.CommandRouter;
 import logger.Logger;
 import serdes.RedisDeserializer;
 import serdes.RedisMessage;
 
-import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
 

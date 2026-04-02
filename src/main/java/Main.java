@@ -1,6 +1,4 @@
 import logger.Logger;
-import server.RedisServer;
-import server.RedisServerConfiguration;
 
 public class Main {
   public static void main(String[] args) {

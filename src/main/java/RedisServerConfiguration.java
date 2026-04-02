@@ -1,5 +1,3 @@
-package server;
-
 public class RedisServerConfiguration {
 
     public static final int DEFAULT_PORT = 6379;

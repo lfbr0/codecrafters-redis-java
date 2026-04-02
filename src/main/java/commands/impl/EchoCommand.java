@@ -18,7 +18,7 @@ public class EchoCommand implements Command {
             throw new IllegalArgumentException("ECHO command argument must be a bulk string");
         }
 
-        context.getOutputStream().write(RedisSerializer.serialize(firstArg).getBytes());
+        context.getOutputStream().write(RedisSerializer.serialize(firstArg));
     }
 
     @Override
