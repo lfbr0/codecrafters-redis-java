@@ -61,4 +61,7 @@ public class ReplicationManager {
                 .toString();
     }
 
+    public static String getReplicationId() {
+        return masterReplId.get();
+    }
 }
