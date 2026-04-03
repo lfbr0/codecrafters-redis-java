@@ -73,4 +73,11 @@ public class RedisSerializer {
         redisMessage.setContent(key);
         return redisMessage;
     }
+
+    public static byte[] simpleString(String value) {
+        RedisMessage message = new RedisMessage();
+        message.setType(RedisMessage.RedisMessageType.SIMPLE_STRING);
+        message.setContent(value);
+        return serialize(message);
+    }
 }

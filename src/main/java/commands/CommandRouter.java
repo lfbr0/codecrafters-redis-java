@@ -10,18 +10,14 @@ import logger.Logger;
 public class CommandRouter {
 
     private final static Command[] COMMANDS = {
-            new PingCommand(),
-            new EchoCommand(),
+            // Basic commands
+            new PingCommand(), new EchoCommand(),
             // Set & Get commands
-            new SetCommand(),
-            new GetCommand(),
+            new SetCommand(), new GetCommand(),
             // List commands
-            new RpushCommand(),
-            new LrangeCommand(),
-            new LpushCommand(),
-            new LlenCommand(),
-            new LpopCommand(),
-            new BlpopCommand()
+            new RpushCommand(), new LrangeCommand(), new LpushCommand(), new LlenCommand(), new LpopCommand(), new BlpopCommand(),
+            // Stream commands
+            new TypeCommand()
     };
 
     /**
