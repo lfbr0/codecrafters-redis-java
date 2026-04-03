@@ -91,6 +91,7 @@ public class RedisClientHandler implements Runnable {
 
         // replication - if write command, replicate to slaves
         if (command.isWriteCommand()) {
+            Logger.info("Command " + command + " is write, so replicating message=" + message);
             ReplicationManager.replicate(message);
         }
 

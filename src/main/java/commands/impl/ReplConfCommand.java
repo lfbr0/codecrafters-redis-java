@@ -34,7 +34,7 @@ public class ReplConfCommand implements Command {
             Logger.info("REPLCONF received slave port " + slavePort);
 
             // add to ReplicationManager that a slave is subscribed to write events
-            ReplicationManager.replicateTo(slavePort);
+            ReplicationManager.replicateTo(context.getOutputStream());
         }
 
         return CommandResponse.ok();
