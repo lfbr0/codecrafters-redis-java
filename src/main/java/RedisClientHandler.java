@@ -88,6 +88,7 @@ public class RedisClientHandler implements Runnable {
         CommandResponse commandResponse = CommandRouter
                 .getCommand((String) elements.getFirst().getContent())
                 .execute(ctx);
+        Logger.info("Command response: " + commandResponse);
 
         // if entered transaction mode, set flag & id
         if (!inTransaction.get() && ctx.isInTransaction()) {

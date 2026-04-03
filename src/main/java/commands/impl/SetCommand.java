@@ -34,7 +34,6 @@ public class SetCommand implements Command {
         };
 
         if (context.isInTransaction()) {
-            Logger.info("SET command part of transaction " + context.getTransactionId() + ", queuing operation");
             TransactionManager.addOperation(context.getTransactionId(), task);
             return CommandResponse.queued();
         }
