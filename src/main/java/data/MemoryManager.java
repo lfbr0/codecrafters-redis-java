@@ -4,10 +4,7 @@ import logger.Logger;
 import serdes.RedisMessage;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -24,7 +21,8 @@ public class MemoryManager {
             new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "expiry-thread"));
     // For lists in rpush
     private static final Map<String, List<RedisMessage>> listStore = new ConcurrentHashMap<>();
-
+    // For lists subscription
+    private static final Map<String, Queue<SynchronousQueue<RedisMessage>>> listPopSubs = new ConcurrentHashMap<>();
 
     /**
      * Sets the value for the given key in the memory store with an expiration duration.
@@ -121,6 +119,7 @@ public class MemoryManager {
             return list.size();
         } finally {
             writeLock.unlock();
+            popFromListToSubs(listKey);
         }
     }
 
@@ -146,6 +145,7 @@ public class MemoryManager {
             return list.size();
         } finally {
             writeLock.unlock();
+            popFromListToSubs(listKey);
         }
     }
 
@@ -239,6 +239,52 @@ public class MemoryManager {
             return result;
         } finally {
             readLock.unlock();
+        }
+    }
+
+    /**
+     * Registers a SynchronousQueue to be notified when an element is popped from the list stored at listKey.
+     * @param listKey the key of the list to subscribe to for pop notifications
+     * @param queue queue to place popped value
+     */
+    public static void blockingPopFromList(String listKey, SynchronousQueue<RedisMessage> queue) {
+        Logger.info("Blocking pop from list: " + listKey);
+        listPopSubs
+                .computeIfAbsent(listKey, k -> new ConcurrentLinkedQueue<>())
+                .add(queue);
+    }
+
+    /**
+     * Pop from list to longest waiting subscriber, if any.
+     * This method is called after every push to the list
+     * to ensure that waiting subscribers are notified as soon as possible.
+     * @param listKey the key of the list to pop from and notify subscribers about
+     */
+    private static void popFromListToSubs(String listKey) {
+        ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
+                .getLock("list[" + listKey + "]")
+                .writeLock();
+
+        try {
+            writeLock.lock();
+
+            List<RedisMessage> list = listStore.get(listKey);
+            if (list == null || list.isEmpty()) {
+                return;
+            }
+
+            Queue<SynchronousQueue<RedisMessage>> subs = listPopSubs.get(listKey);
+            if (subs == null || subs.isEmpty()) {
+                return;
+            }
+
+            RedisMessage poppedValue = list.removeFirst();
+            SynchronousQueue<RedisMessage> sub = subs.poll();
+            if (sub != null) {
+                sub.offer(poppedValue);
+            }
+        } finally {
+            writeLock.unlock();
         }
     }
 }

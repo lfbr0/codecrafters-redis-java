@@ -62,4 +62,15 @@ public class RedisSerializer {
         redisMessage.setContent(messages);
         return serialize(redisMessage);
     }
+
+    public static byte[] nullArray() {
+        return "*-1\r\n".getBytes();
+    }
+
+    public static RedisMessage bulkString(String key) {
+        RedisMessage redisMessage = new RedisMessage();
+        redisMessage.setType(RedisMessage.RedisMessageType.BULK_STRING);
+        redisMessage.setContent(key);
+        return redisMessage;
+    }
 }
