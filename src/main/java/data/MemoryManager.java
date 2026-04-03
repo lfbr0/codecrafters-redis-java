@@ -75,6 +75,8 @@ public class MemoryManager {
             writeLock.lock();
             Logger.info("Deleting key: " + key);
             keyValueStore.remove(key);
+            // fix memory leak for lock factory
+            KeyLockFactory.removeLock("data[" + key + "]");
         } finally {
             writeLock.unlock();
         }
