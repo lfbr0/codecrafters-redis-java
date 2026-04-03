@@ -4,6 +4,7 @@ import logger.Logger;
 import serdes.RedisMessage;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -203,6 +204,34 @@ public class MemoryManager {
             Logger.info("Getting length of list: " + key);
             List<RedisMessage> list = listStore.get(key);
             return list == null ? 0 : list.size();
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    /**
+     *
+     * @param key
+     * @param popCount
+     * @return
+     */
+    public static List<RedisMessage> popFromList(String key, int popCount) {
+        Logger.info("Popping " + popCount + " elements from list: " + key);
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("list[" + key + "]")
+                .readLock();
+
+        try {
+            List<RedisMessage> list = listStore.get(key);
+            if (list == null || list.isEmpty()) {
+                return List.of();
+            }
+
+            List<RedisMessage> result = new ArrayList<>(popCount);
+            while (popCount-- > 0) {
+                result.add(list.removeFirst());
+            }
+            return result;
         } finally {
             readLock.unlock();
         }

@@ -19,7 +19,8 @@ public class CommandRouter {
             new RpushCommand(),
             new LrangeCommand(),
             new LpushCommand(),
-            new LlenCommand()
+            new LlenCommand(),
+            new LpopCommand()
     };
 
     /**
