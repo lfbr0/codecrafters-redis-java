@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 public class BlpopCommand implements Command {
     @Override
@@ -25,15 +26,16 @@ public class BlpopCommand implements Command {
         }
 
         String key = (String) keyRaw.getContent();
-        long timeout = Long.parseLong((String) timeoutRaw.getContent());
+        float timeout = Float.parseFloat((String) timeoutRaw.getContent());
         if (timeout == 0) {
-            timeout = Long.MAX_VALUE; // block indefinitely
+            timeout = Float.MAX_VALUE; // block indefinitely
         }
+        long timeoutMillis = (long) (timeout * 1000);
 
         // TODO: adapt to transaction
         SynchronousQueue<RedisMessage> queue = new SynchronousQueue<>();
         MemoryManager.blockingPopFromList(key, queue);
-        RedisMessage poppedValue = queue.poll(timeout, java.util.concurrent.TimeUnit.SECONDS);
+        RedisMessage poppedValue = queue.poll(timeoutMillis, TimeUnit.MILLISECONDS);
         
         if (poppedValue == null) {
             context.getOutputStream().write(RedisSerializer.nullArray());
