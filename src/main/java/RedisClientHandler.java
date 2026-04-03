@@ -108,5 +108,11 @@ public class RedisClientHandler implements Runnable {
         // write to client response
         Logger.info("Sending response to client: " + socket.getRemoteSocketAddress() + " - " + commandResponse);
         socket.getOutputStream().write(commandResponse.getResponseBytes());
+
+        // execute post response callback - if it exists
+        CommandResponse.CommandPostResponseCallback postRespCb = commandResponse.getPostResponseCallback();
+        if (postRespCb != null) {
+            postRespCb.postResponse(socket.getOutputStream());
+        }
     }
 }
