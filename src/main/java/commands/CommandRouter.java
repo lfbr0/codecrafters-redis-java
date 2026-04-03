@@ -17,7 +17,9 @@ public class CommandRouter {
             // List commands
             new RpushCommand(), new LrangeCommand(), new LpushCommand(), new LlenCommand(), new LpopCommand(), new BlpopCommand(),
             // Stream commands
-            new TypeCommand()
+            new TypeCommand(),
+            // Transaction commands
+            new IncrCommand()
     };
 
     /**

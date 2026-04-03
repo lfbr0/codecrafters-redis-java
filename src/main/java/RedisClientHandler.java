@@ -65,11 +65,14 @@ public class RedisClientHandler implements Runnable {
             return;
         }
 
+        CommandContext ctx = new CommandContext(
+                socket.getOutputStream(),
+                elements.stream().skip(1).toList() // ignore command name, pass only arguments
+        );
+        Logger.info("Context info: " + ctx);
+
         CommandRouter
                 .getCommand((String) elements.getFirst().getContent())
-                .execute(new CommandContext(
-                        socket.getOutputStream(),
-                        elements.stream().skip(1).toList() // ignore command name, pass only arguments
-                ));
+                .execute(ctx);
     }
 }

@@ -19,10 +19,12 @@ public class MemoryManager {
     // For expiry management, removes concurrently expired keys
     private static final ScheduledExecutorService expiryExecutorService =
             new ScheduledThreadPoolExecutor(1, r -> new Thread(r, "expiry-thread"));
+
     // For lists in rpush
     private static final Map<String, List<RedisMessage>> listStore = new ConcurrentHashMap<>();
     // For lists subscription
     private static final Map<String, Queue<SynchronousQueue<RedisMessage>>> listPopSubs = new ConcurrentHashMap<>();
+
 
     /**
      * Sets the value for the given key in the memory store with an expiration duration.
@@ -98,6 +100,45 @@ public class MemoryManager {
             readLock.unlock();
         }
     }
+
+    /**
+     * Increments the integer value associated with the given key by 1.
+     * If the key does not exist, it will be created with a value of 1.
+     * @param key the key to increment
+     * @return the new value after incrementing
+     * @throws IllegalArgumentException if the current value associated with the key is not an integer
+     */
+    public static int increment(String key) throws IllegalArgumentException {
+        ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
+                .getLock("data[" + key + "]")
+                .writeLock();
+
+        try {
+            writeLock.lock();
+            Logger.info("Incrementing key: " + key);
+            RedisMessage currentValue = keyValueStore.get(key);
+            RedisMessage newValue = null;
+
+            if (currentValue == null) {
+                newValue = new RedisMessage();
+                newValue.setType(RedisMessage.RedisMessageType.INTEGER);
+                newValue.setContent(1);
+            } else if (currentValue.getType() == RedisMessage.RedisMessageType.INTEGER) {
+                newValue = new RedisMessage();
+                newValue.setType(RedisMessage.RedisMessageType.INTEGER);
+                newValue.setContent((Integer) currentValue.getContent() + 1);
+            } else {
+                throw new IllegalArgumentException("ERR value is not an integer or out of range");
+            }
+
+            keyValueStore.put(key, newValue);
+            return (Integer) newValue.getContent();
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    // LIST OPERATIONS
 
     /**
      * Pushes the given values to the end of the list stored at listKey. If the list does not exist, it will be created.
@@ -285,6 +326,22 @@ public class MemoryManager {
             }
         } finally {
             writeLock.unlock();
+        }
+    }
+
+    /**
+     * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
+     * @param key the key to check the type of
+     * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist
+     */
+    public static String type(String key) {
+        // no locks since we just want to verify existance
+        if (keyValueStore.containsKey(key)) {
+            return "string";
+        } else if (listStore.containsKey(key)) {
+            return "list";
+        } else {
+            return null;
         }
     }
 }

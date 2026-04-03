@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class RedisDeserializer {
 
+    private static final String INTEGER_REGEX_PATTERN = "\\d+";
+
     private RedisDeserializer() {}
 
     /**
@@ -50,7 +52,16 @@ public class RedisDeserializer {
                         inputStream.read(bulkData);
                         inputStream.read(); // Read the trailing \r
                         inputStream.read(); // Read the trailing \n
-                        redisMessage.setContent(new String(bulkData));
+                        String bulkString = new String(bulkData);
+                        // fix - if just numbers, treat as integer
+                        if (bulkString.matches(INTEGER_REGEX_PATTERN)) {
+                            // treat as integer
+                            redisMessage.setType(RedisMessage.RedisMessageType.INTEGER);
+                            redisMessage.setContent(Integer.parseInt(bulkString));
+                        } else {
+                            // proceed as bulk string
+                            redisMessage.setContent(bulkString);
+                        }
                     }
                     break;
                 case '*':

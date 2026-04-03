@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public class CommandContext {
 
-    private final OutputStream outputStream;
+    private final transient OutputStream outputStream;
     private final List<RedisMessage> arguments;
 
     // state vars
@@ -45,5 +45,14 @@ public class CommandContext {
     public void endTransaction() {
         this.isInTransaction = false;
         this.transactionId = null;
+    }
+
+    @Override
+    public String toString() {
+        return "CommandContext{" +
+                "transactionId=" + transactionId +
+                ", isInTransaction=" + isInTransaction +
+                ", arguments=" + arguments +
+                '}';
     }
 }

@@ -80,4 +80,11 @@ public class RedisSerializer {
         message.setContent(value);
         return serialize(message);
     }
+
+    public static byte[] error(String error) {
+        RedisMessage message = new RedisMessage();
+        message.setType(RedisMessage.RedisMessageType.ERROR);
+        message.setContent(error);
+        return serialize(message);
+    }
 }

@@ -19,25 +19,10 @@ public class TypeCommand implements Command {
         }
 
         String key = (String) keyRaw.getContent();
-        RedisMessage value = MemoryManager.get(key);
 
-        if (value == null) {
-            context.getOutputStream().write(RedisSerializer.simpleString("none"));
-        } else {
-            String type;
-            switch (value.getType()) {
-                case BULK_STRING:
-                case SIMPLE_STRING:
-                    type = "string";
-                    break;
-                case ARRAY:
-                    type = "list";
-                    break;
-                default:
-                    type = "unknown";
-            }
-            context.getOutputStream().write(RedisSerializer.simpleString(type));
-        }
+        // TODO: prepare for transactions
+        String type = MemoryManager.type(key);
+        context.getOutputStream().write(RedisSerializer.simpleString(type == null ? "none" : type));
     }
 
     @Override
