@@ -19,7 +19,9 @@ public class CommandRouter {
             // Stream commands
             new TypeCommand(),
             // Transaction commands
-            new IncrCommand(), new MultiCommand(), new ExecCommand(), new DiscardCommand()
+            new IncrCommand(), new MultiCommand(), new ExecCommand(), new DiscardCommand(),
+            // Replication commands
+            new InfoCommand()
     };
 
     /**
