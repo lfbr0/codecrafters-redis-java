@@ -2,19 +2,19 @@ package commands.impl;
 
 import commands.Command;
 import commands.CommandContext;
+import commands.CommandResponse;
 import data.MemoryManager;
+import data.TransactionManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
 import java.util.List;
-import java.util.concurrent.Exchanger;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 public class BlpopCommand implements Command {
     @Override
-    public void execute(CommandContext context) throws Exception {
+    public CommandResponse execute(CommandContext context) throws Exception {
         if (context.getArguments() == null || context.getArguments().size() < 2) {
             throw new IllegalArgumentException("BLPOP command requires at least 2 arguments: key and timeout");
         }
@@ -32,19 +32,27 @@ public class BlpopCommand implements Command {
         }
         long timeoutMillis = (long) (timeout * 1000);
 
-        // TODO: adapt to transaction
+        if (context.isInTransaction()) {
+            TransactionManager.addOperation(context.getTransactionId(), () -> performBlockingPop(key, timeoutMillis));
+            return CommandResponse.queued();
+        } else {
+            return new CommandResponse(performBlockingPop(key, timeoutMillis));
+        }
+    }
+
+    private byte[] performBlockingPop(String key, long timeoutMillis) throws InterruptedException {
         SynchronousQueue<RedisMessage> queue = new SynchronousQueue<>();
         MemoryManager.blockingPopFromList(key, queue);
         RedisMessage poppedValue = queue.poll(timeoutMillis, TimeUnit.MILLISECONDS);
-        
+
         if (poppedValue == null) {
-            context.getOutputStream().write(RedisSerializer.nullArray());
+            return RedisSerializer.nullArray();
         } else {
             RedisMessage keyMessage = new RedisMessage();
             keyMessage.setType(RedisMessage.RedisMessageType.BULK_STRING);
             keyMessage.setContent(key);
             // write response as an array of [key, poppedValue]
-            context.getOutputStream().write(RedisSerializer.list(List.of(keyMessage, poppedValue)));
+            return RedisSerializer.list(List.of(keyMessage, poppedValue));
         }
     }
 

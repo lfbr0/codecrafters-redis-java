@@ -19,7 +19,7 @@ public class CommandRouter {
             // Stream commands
             new TypeCommand(),
             // Transaction commands
-            new IncrCommand()
+            new IncrCommand(), new MultiCommand()
     };
 
     /**

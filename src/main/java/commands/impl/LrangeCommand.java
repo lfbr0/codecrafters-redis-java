@@ -2,15 +2,18 @@ package commands.impl;
 
 import commands.Command;
 import commands.CommandContext;
+import commands.CommandResponse;
 import data.MemoryManager;
+import data.TransactionManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 
 public class LrangeCommand implements Command {
     @Override
-    public void execute(CommandContext context) throws Exception {
+    public CommandResponse execute(CommandContext context) throws Exception {
         if (context.getArguments() == null || context.getArguments().size() < 3) {
             throw new IllegalArgumentException("LRANGE command requires at least 3 arguments: key, start, stop");
         }
@@ -29,9 +32,17 @@ public class LrangeCommand implements Command {
         int start = Integer.parseInt((String) startRaw.getContent());
         int stop = Integer.parseInt((String) stopRaw.getContent());
 
-        // TODO: prepare for transactions
-        List<RedisMessage> range = MemoryManager.rangeFromList(key, start, stop);
-        context.getOutputStream().write(RedisSerializer.list(range));
+        Callable<byte[]> task = () -> {
+            List<RedisMessage> range = MemoryManager.rangeFromList(key, start, stop);
+            return RedisSerializer.list(range);
+        };
+
+        if (context.isInTransaction()) {
+            TransactionManager.addOperation(context.getTransactionId(), task);
+            return CommandResponse.queued();
+        } else {
+            return new CommandResponse(task.call());
+        }
     }
 
     @Override

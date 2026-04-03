@@ -2,11 +2,11 @@ package serdes;
 
 import logger.Logger;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class RedisDeserializer {
 
@@ -19,6 +19,7 @@ public class RedisDeserializer {
      * @param inputStream socket input stream to read the Redis message from
      * @return the deserialized RedisMessage object
      */
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static RedisMessage deserialize(InputStream inputStream) throws IOException {
         try {
             RedisMessage redisMessage = new RedisMessage();
@@ -106,4 +107,7 @@ public class RedisDeserializer {
         return line.toString();
     }
 
+    public static RedisMessage deserialize(byte[] bytes) throws IOException {
+        return deserialize(new ByteArrayInputStream(bytes));
+    }
 }

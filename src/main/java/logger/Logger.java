@@ -12,6 +12,6 @@ public class Logger {
     }
 
     public static void info(String message, Object... args) {
-        System.out.println(String.format(message, args));
+        System.out.printf((message) + "%n", args);
     }
 }

@@ -2,15 +2,18 @@ package commands.impl;
 
 import commands.Command;
 import commands.CommandContext;
+import commands.CommandResponse;
 import data.MemoryManager;
+import data.TransactionManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
 import java.time.Duration;
+import java.util.concurrent.Callable;
 
 public class SetCommand implements Command {
     @Override
-    public void execute(CommandContext context) throws Exception {
+    public CommandResponse execute(CommandContext context) throws Exception {
         if (context.getArguments() == null || context.getArguments().size() < 2) {
             throw new IllegalArgumentException("SET command requires at least 2 arguments: key and value");
         }
@@ -20,15 +23,21 @@ public class SetCommand implements Command {
             throw new IllegalArgumentException("SET command requires the key to be a bulk string");
         }
 
-        // TODO: prepare for transaction support, currently we directly set the value in memory manager
-        setInMemory(
-                (String) keyRaw.getContent(),
-                context.getArguments().get(1),
-                context
-        );
+        Callable<byte[]> task = () -> {
+            setInMemory(
+                    (String) keyRaw.getContent(),
+                    context.getArguments().get(1),
+                    context
+            );
+            return RedisSerializer.okString();
+        };
 
-        // respond with OK
-        context.getOutputStream().write(RedisSerializer.okString());
+        if (context.isInTransaction()) {
+            TransactionManager.addOperation(context.getTransactionId(), task);
+            return CommandResponse.queued();
+        }
+
+        return new CommandResponse(task.call());
     }
 
     private void setInMemory(String key, RedisMessage value, CommandContext context) throws Exception {

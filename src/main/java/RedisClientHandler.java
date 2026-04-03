@@ -1,11 +1,18 @@
 import commands.CommandContext;
+import commands.CommandResponse;
 import commands.CommandRouter;
+import data.TransactionManager;
 import logger.Logger;
 import serdes.RedisDeserializer;
 import serdes.RedisMessage;
+import serdes.RedisSerializer;
 
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static serdes.RedisMessage.RedisMessageType.ARRAY;
 import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
@@ -13,6 +20,8 @@ import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
 public class RedisClientHandler implements Runnable {
 
     private final Socket socket;
+    private final AtomicBoolean inTransaction = new AtomicBoolean(false);
+    private final AtomicReference<UUID> transationId = new AtomicReference<>(null);
 
     public RedisClientHandler(Socket socket) {
         this.socket = socket;
@@ -69,10 +78,39 @@ public class RedisClientHandler implements Runnable {
                 socket.getOutputStream(),
                 elements.stream().skip(1).toList() // ignore command name, pass only arguments
         );
-        Logger.info("Context info: " + ctx);
 
-        CommandRouter
+        if (inTransaction.get()) {
+            Logger.info("Received a command while in transaction mode. Commands will be queued until MULTI is executed.");
+            ctx.startTransaction(transationId.get());
+        }
+
+        Logger.info("Context info: " + ctx);
+        CommandResponse commandResponse = CommandRouter
                 .getCommand((String) elements.getFirst().getContent())
                 .execute(ctx);
+
+        // if entered transaction mode, set flag & id
+        if (ctx.isInTransaction()) {
+            Logger.info("Entering transaction mode for client: " + socket.getRemoteSocketAddress());
+            inTransaction.set(true);
+            transationId.set(ctx.getTransactionId());
+        } else if (inTransaction.get()) {
+            // since we are in transaction but received a non-transaction command, we should exit transaction mode
+            Logger.info("Exiting transaction mode for client: " + socket.getRemoteSocketAddress());
+            inTransaction.set(false);
+            // execute all transactions
+            List<byte[]> messagesRaw = TransactionManager.commitTransaction(transationId.get());
+            List<RedisMessage> messages = new ArrayList<>(messagesRaw.size());
+            for (byte[] messageRaw : messagesRaw) {
+                messages.add(RedisDeserializer.deserialize(messageRaw));
+            }
+            // transform to response bytes and write to client
+            socket.getOutputStream().write(RedisSerializer.list(messages));
+            // exit transaction mode and clear transaction id
+            return;
+        }
+
+        // write to client response
+        socket.getOutputStream().write(commandResponse.getResponseBytes());
     }
 }

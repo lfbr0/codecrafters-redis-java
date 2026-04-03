@@ -3,7 +3,6 @@ package commands;
 import serdes.RedisMessage;
 
 import java.io.OutputStream;
-import java.net.Socket;
 import java.util.List;
 import java.util.UUID;
 

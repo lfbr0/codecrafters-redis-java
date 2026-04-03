@@ -2,15 +2,19 @@ package commands.impl;
 
 import commands.Command;
 import commands.CommandContext;
+import commands.CommandResponse;
 import data.MemoryManager;
+import data.TransactionManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LpopCommand implements Command {
     @Override
-    public void execute(CommandContext context) throws Exception {
+    public CommandResponse execute(CommandContext context) throws Exception {
         if (context.getArguments() == null || context.getArguments().isEmpty()) {
             throw new IllegalArgumentException("LPOP command requires at least 1 argument: the key");
         }
@@ -23,23 +27,31 @@ public class LpopCommand implements Command {
         String key = (String) rawKey.getContent();
 
         // check if there's how many to pop
-        int popCount = 1;
+        final AtomicInteger popCount = new AtomicInteger(1);
         if (context.getArguments().size() > 1) {
             RedisMessage rawValue = context.getArguments().get(1);
             if (rawValue.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
                 throw new IllegalArgumentException("LPOP command requires the pop count to be a bulk string");
             }
-            popCount = Integer.parseInt((String) rawValue.getContent());
+            popCount.set(Integer.parseInt((String) rawValue.getContent()));
         }
 
-        // TODO: adapt to transactions
-        List<RedisMessage> poppedValues = MemoryManager.popFromList(key, popCount);
-        if (poppedValues == null || poppedValues.isEmpty()) {
-            context.getOutputStream().write(RedisSerializer.nullBulkString());
-        } else if (poppedValues.size() == 1) {
-            context.getOutputStream().write(RedisSerializer.serialize(poppedValues.getFirst()));
+        Callable<byte[]> task = () -> {
+            List<RedisMessage> poppedValues = MemoryManager.popFromList(key, popCount.get());
+            if (poppedValues.isEmpty()) {
+                return RedisSerializer.nullBulkString();
+            } else if (poppedValues.size() == 1) {
+                return RedisSerializer.serialize(poppedValues.getFirst());
+            } else {
+                return RedisSerializer.list(poppedValues);
+            }
+        };
+
+        if (context.isInTransaction()) {
+            TransactionManager.addOperation(context.getTransactionId(), task);
+            return CommandResponse.queued();
         } else {
-            context.getOutputStream().write(RedisSerializer.list(poppedValues));
+            return new CommandResponse(task.call());
         }
     }
 

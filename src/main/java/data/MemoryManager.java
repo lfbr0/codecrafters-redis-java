@@ -117,7 +117,7 @@ public class MemoryManager {
             writeLock.lock();
             Logger.info("Incrementing key: " + key);
             RedisMessage currentValue = keyValueStore.get(key);
-            RedisMessage newValue = null;
+            RedisMessage newValue;
 
             if (currentValue == null) {
                 newValue = new RedisMessage();

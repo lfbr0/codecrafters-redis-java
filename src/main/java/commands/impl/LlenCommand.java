@@ -2,13 +2,17 @@ package commands.impl;
 
 import commands.Command;
 import commands.CommandContext;
+import commands.CommandResponse;
 import data.MemoryManager;
+import data.TransactionManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
+import java.util.concurrent.Callable;
+
 public class LlenCommand implements Command {
     @Override
-    public void execute(CommandContext context) throws Exception {
+    public CommandResponse execute(CommandContext context) throws Exception {
         if (context.getArguments() == null || context.getArguments().isEmpty()) {
             throw new IllegalArgumentException("LLEN command requires a key argument");
         }
@@ -18,9 +22,16 @@ public class LlenCommand implements Command {
             throw new IllegalArgumentException("LLEN command requires a bulk string key argument");
         }
 
-        // TODO: prepare for transactions
         String key = (String) rawKey.getContent();
-        context.getOutputStream().write(RedisSerializer.integer(MemoryManager.lengthOfList(key)));
+
+        Callable<byte[]> task = () -> RedisSerializer.integer(MemoryManager.lengthOfList(key));
+
+        if (context.isInTransaction()) {
+            TransactionManager.addOperation(context.getTransactionId(), task);
+            return CommandResponse.queued();
+        } else {
+            return new CommandResponse(task.call());
+        }
     }
 
     @Override
