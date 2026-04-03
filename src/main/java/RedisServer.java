@@ -20,7 +20,11 @@ public class RedisServer implements AutoCloseable {
 
         // if there is master host and master port, then it's a slave server and we need to replicate from master
         if (serverConfiguration.getMasterHost() != null && serverConfiguration.getMasterPort() != null) {
-            ReplicationManager.replicateFrom(serverConfiguration.getMasterHost(), serverConfiguration.getMasterPort());
+            ReplicationManager.replicateFrom(
+                    serverConfiguration.getMasterHost(),
+                    serverConfiguration.getMasterPort(),
+                    serverConfiguration.getPort()
+            );
         }
 
         Logger.info("Redis server is listening on port {}", serverConfiguration.getPort());

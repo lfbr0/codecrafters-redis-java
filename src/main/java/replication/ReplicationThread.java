@@ -12,12 +12,14 @@ public class ReplicationThread extends Thread {
 
     private final String masterHost;
     private final int masterPort;
+    private final int myPort;
 
-    public ReplicationThread(String masterHost, int masterPort) {
+    public ReplicationThread(String masterHost, int masterPort, int myPort) {
         super("RedisSlaveReplicationThread");
         setDaemon(true); // this is an auxiliary thread, we don't want to block jvm kill
         this.masterHost = masterHost;
         this.masterPort = masterPort;
+        this.myPort = myPort;
     }
 
     @Override
@@ -27,17 +29,27 @@ public class ReplicationThread extends Thread {
             Socket socket = new Socket(masterHost, masterPort);
 
             // phase 1 - send PING as RESP array & expect PONG back
-            RedisMessage pingMsg = new RedisMessage();
-            pingMsg.setContent("PING");
-            pingMsg.setType(RedisMessage.RedisMessageType.BULK_STRING);
-            // send message bytes
-            socket.getOutputStream().write(RedisSerializer.list(List.of(pingMsg)));
+            socket.getOutputStream().write(RedisSerializer.listStrings(List.of("PING")));
             // read message back
-            RedisMessage pongMsg = RedisDeserializer.deserialize(socket.getInputStream().readAllBytes());
-            Logger.info("Received message from master: " + pongMsg);
-            assert pongMsg != null;
-            assert pongMsg.getType() == RedisMessage.RedisMessageType.BULK_STRING;
-            assert pongMsg.getContent().toString().equalsIgnoreCase("PONG");
+            RedisMessage masterResp = RedisDeserializer.deserialize(socket.getInputStream().readAllBytes());
+            Logger.info("Phase 1 - Received message from master: " + masterResp);
+            assert masterResp != null && masterResp.getType() == RedisMessage.RedisMessageType.SIMPLE_STRING;
+            assert masterResp.getContent().toString().equalsIgnoreCase("PONG");
+
+            // phase 2 - evoke REPLCONF command on master & send him info
+            List<String> replConfList = List.of("REPLCONF", "listening-port", Integer.toString(myPort));
+            socket.getOutputStream().write(RedisSerializer.listStrings(replConfList));
+            masterResp = RedisDeserializer.deserialize(socket.getInputStream().readAllBytes());
+            Logger.info("Phase 2 - Received message from master: " + masterResp);
+            assert masterResp != null && masterResp.getType() == RedisMessage.RedisMessageType.SIMPLE_STRING;
+            assert masterResp.getContent().toString().equalsIgnoreCase("OK");
+            // send out capa psync2
+            replConfList = List.of("REPLCONF", "capa", "psync2");
+            socket.getOutputStream().write(RedisSerializer.listStrings(replConfList));
+            masterResp = RedisDeserializer.deserialize(socket.getInputStream().readAllBytes());
+            assert masterResp != null && masterResp.getType() == RedisMessage.RedisMessageType.SIMPLE_STRING;
+            assert masterResp.getContent().toString().equalsIgnoreCase("OK");
+
 
         } catch (Exception ex) {
             Logger.error("Failed to replicate: " + ex.getMessage(), ex);

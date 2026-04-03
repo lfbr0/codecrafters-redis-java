@@ -28,11 +28,11 @@ public class ReplicationManager {
      * @param masterHost master host
      * @param masterPort master port
      */
-    public static void replicateFrom(String masterHost, int masterPort) {
+    public static void replicateFrom(String masterHost, int masterPort, int myPort) {
         // mark as slave - master by default
         isMaster.set(false);
         // start replication thread
-        replicationThread = new ReplicationThread(masterHost, masterPort);
+        replicationThread = new ReplicationThread(masterHost, masterPort, myPort);
         replicationThread.start();
     }
 

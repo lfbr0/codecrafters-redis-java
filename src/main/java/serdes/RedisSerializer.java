@@ -74,6 +74,13 @@ public class RedisSerializer {
         return sb.toString().getBytes();
     }
 
+    public static byte[] listStrings(List<String> messagesStr) {
+        List<byte[]> listRaw = messagesStr.stream()
+                .map(RedisSerializer::bulkString)
+                .toList();
+        return listRaw(listRaw);
+    }
+
     public static byte[] nullArray() {
         return "*-1\r\n".getBytes();
     }
