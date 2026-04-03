@@ -28,29 +28,7 @@ public class ExecCommand implements Command {
 
         // execute all transactions
         List<byte[]> messagesRaw = TransactionManager.commitTransaction(transactionId);
-        List<RedisMessage> messages = new ArrayList<>(messagesRaw.size());
-        for (byte[] messageRaw : messagesRaw) {
-            RedisMessage message = RedisDeserializer.deserialize(messageRaw);
-
-            // convert integers to bulk strings because that's how Redis does it
-            if (message.getType() == INTEGER) {
-                message.setType(BULK_STRING);
-
-                String content;
-                if (message.getContent() instanceof Integer) {
-                    int value = (Integer) message.getContent();
-                    content = Integer.toString(value);
-                } else {
-                    content = message.getContent().toString();
-                }
-
-                message.setContent(content.getBytes());
-            }
-
-            messages.add(message);
-        }
-
-        return new CommandResponse(RedisSerializer.list(messages));
+        return new CommandResponse(RedisSerializer.listRaw(messagesRaw));
     }
 
     @Override

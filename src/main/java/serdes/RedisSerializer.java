@@ -63,6 +63,17 @@ public class RedisSerializer {
         return serialize(redisMessage);
     }
 
+    public static byte[] listRaw(List<byte[]> messagesRaw) {
+        StringBuilder sb = new StringBuilder()
+                .append("*").append(messagesRaw.size()).append("\r\n");
+
+        for (byte[] msg : messagesRaw) {
+            sb.append(new String(msg));
+        }
+
+        return sb.toString().getBytes();
+    }
+
     public static byte[] nullArray() {
         return "*-1\r\n".getBytes();
     }
