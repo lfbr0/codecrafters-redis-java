@@ -39,14 +39,14 @@ public class ReplicationThread extends Thread {
             // phase 2 - evoke REPLCONF command on master & send him info
             List<String> replConfList = List.of("REPLCONF", "listening-port", Integer.toString(myPort));
             socket.getOutputStream().write(RedisSerializer.listStrings(replConfList));
-            masterResp = RedisDeserializer.deserialize(socket.getInputStream().readAllBytes());
+            masterResp = RedisDeserializer.deserialize(socket.getInputStream().readNBytes(5));
             Logger.info("Phase 2 - Received message from master: " + masterResp);
             assert masterResp != null && masterResp.getType() == RedisMessage.RedisMessageType.SIMPLE_STRING;
             assert masterResp.getContent().toString().equalsIgnoreCase("OK");
             // send out capa psync2
             replConfList = List.of("REPLCONF", "capa", "psync2");
             socket.getOutputStream().write(RedisSerializer.listStrings(replConfList));
-            masterResp = RedisDeserializer.deserialize(socket.getInputStream().readAllBytes());
+            masterResp = RedisDeserializer.deserialize(socket.getInputStream().readNBytes(5));
             assert masterResp != null && masterResp.getType() == RedisMessage.RedisMessageType.SIMPLE_STRING;
             assert masterResp.getContent().toString().equalsIgnoreCase("OK");
 
