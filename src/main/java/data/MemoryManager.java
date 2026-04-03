@@ -210,10 +210,11 @@ public class MemoryManager {
     }
 
     /**
-     *
-     * @param key
-     * @param popCount
-     * @return
+     * Pops the specified number of elements from the beginning of the list stored at key.
+     * If the list does not exist or is empty, it returns an empty list.
+     * @param key the key of the list to pop elements from
+     * @param popCount the number of elements to pop from the list
+     * @return a list of RedisMessage containing the popped elements, or an empty list if the list does not exist or is empty
      */
     public static List<RedisMessage> popFromList(String key, int popCount) {
         Logger.info("Popping " + popCount + " elements from list: " + key);
@@ -222,6 +223,8 @@ public class MemoryManager {
                 .readLock();
 
         try {
+            readLock.lock();
+
             List<RedisMessage> list = listStore.get(key);
             if (list == null || list.isEmpty()) {
                 return List.of();
