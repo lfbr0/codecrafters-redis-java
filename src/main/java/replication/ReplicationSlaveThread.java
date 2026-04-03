@@ -8,14 +8,14 @@ import serdes.RedisSerializer;
 import java.net.Socket;
 import java.util.List;
 
-public class ReplicationThread extends Thread {
+public class ReplicationSlaveThread extends Thread {
 
     private final String masterHost;
     private final int masterPort;
     private final int myPort;
     private String masterReplicationId;
 
-    public ReplicationThread(String masterHost, int masterPort, int myPort) {
+    public ReplicationSlaveThread(String masterHost, int masterPort, int myPort) {
         super("RedisSlaveReplicationThread");
         setDaemon(true); // this is an auxiliary thread, we don't want to block jvm kill
         this.masterHost = masterHost;

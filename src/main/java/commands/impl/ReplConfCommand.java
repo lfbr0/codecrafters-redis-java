@@ -4,6 +4,7 @@ import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import logger.Logger;
+import replication.ReplicationManager;
 import serdes.RedisMessage;
 
 import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
@@ -31,6 +32,9 @@ public class ReplConfCommand implements Command {
                 slavePort = Integer.parseInt(argumentValueRaw.getContent().toString());
             }
             Logger.info("REPLCONF received slave port " + slavePort);
+
+            // add to ReplicationManager that a slave is subscribed to write events
+            ReplicationManager.replicateTo(slavePort);
         }
 
         return CommandResponse.ok();

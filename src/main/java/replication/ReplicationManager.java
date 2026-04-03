@@ -1,7 +1,11 @@
 package replication;
 
 import logger.Logger;
+import serdes.RedisMessage;
 
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -15,7 +19,8 @@ public class ReplicationManager {
     private static final AtomicLong masterReplOffset = new AtomicLong(0);
 
     // replication thread to do it concurrently
-    private static ReplicationThread replicationThread;
+    private static ReplicationSlaveThread replicationSlaveThread;
+    private static List<ReplicationMasterThread> replicationMasterThreads = Collections.synchronizedList(new LinkedList<>());
 
 
     /**
@@ -27,7 +32,7 @@ public class ReplicationManager {
     }
 
     /**
-     * Starts replication process given master host & port
+     * Starts replication process given master host & port as slave
      * @param masterHost master host
      * @param masterPort master port
      */
@@ -35,15 +40,31 @@ public class ReplicationManager {
         // mark as slave - master by default
         isMaster.set(false);
         // start replication thread
-        replicationThread = new ReplicationThread(masterHost, masterPort, myPort);
-        replicationThread.start();
+        replicationSlaveThread = new ReplicationSlaveThread(masterHost, masterPort, myPort);
+        replicationSlaveThread.start();
         // wait for it to finish & gather master info
         try {
-            replicationThread.join();
-            Logger.info("SETTING NEW MASTER REPLICATION ID: " + replicationThread.getMasterReplicationId());
-            masterReplId.set(replicationThread.getMasterReplicationId());
+            replicationSlaveThread.join();
+            Logger.info("SETTING NEW MASTER REPLICATION ID: " + replicationSlaveThread.getMasterReplicationId());
+            masterReplId.set(replicationSlaveThread.getMasterReplicationId());
         } catch (InterruptedException e) {
             Logger.error("Replication thread was interrupted!", e);
+        }
+    }
+
+    /**
+     * Starts replication to slave port as master
+     * @param slavePort slave port to send info to
+     */
+    public static void replicateTo(int slavePort) {
+        ReplicationMasterThread replicationMasterThread = new ReplicationMasterThread(slavePort);
+        replicationMasterThreads.add(replicationMasterThread);
+        replicationMasterThread.start();
+    }
+
+    public static void replicate(RedisMessage message) {
+        for (ReplicationMasterThread masterThread : replicationMasterThreads) {
+            masterThread.replicate(message);
         }
     }
 

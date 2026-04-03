@@ -4,8 +4,15 @@ import serdes.RedisSerializer;
 
 import java.io.OutputStream;
 
+/**
+ * This classes holds the response in bytes to command - ready to send to client
+ */
 public class CommandResponse {
 
+    /**
+     * In some situations, we want to send the client additional data after sending response to command
+     * This allows that.
+     */
     @FunctionalInterface
     public interface CommandPostResponseCallback {
         void postResponse(OutputStream clientOutputStream) throws Exception;

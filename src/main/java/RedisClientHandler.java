@@ -1,8 +1,10 @@
+import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import commands.CommandRouter;
 import data.TransactionManager;
 import logger.Logger;
+import replication.ReplicationManager;
 import serdes.RedisDeserializer;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
@@ -85,9 +87,14 @@ public class RedisClientHandler implements Runnable {
         }
 
         Logger.info("Context info: " + ctx);
-        CommandResponse commandResponse = CommandRouter
-                .getCommand((String) elements.getFirst().getContent())
-                .execute(ctx);
+        Command command = CommandRouter.getCommand((String) elements.getFirst().getContent());
+
+        // replication - if write command, replicate to slaves
+        if (command.isWriteCommand()) {
+            ReplicationManager.replicate(message);
+        }
+
+        CommandResponse commandResponse = command.execute(ctx);
         Logger.info("Command response: " + commandResponse);
 
         // if entered transaction mode, set flag & id
