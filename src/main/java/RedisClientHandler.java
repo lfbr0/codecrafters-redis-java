@@ -91,13 +91,15 @@ public class RedisClientHandler implements Runnable {
 
         // if entered transaction mode, set flag & id
         if (!inTransaction.get() && ctx.isInTransaction()) {
-            Logger.info("Entering transaction mode for client: " + socket.getRemoteSocketAddress());
+            Logger.info("Entering transaction mode for client: " + socket.getRemoteSocketAddress() +
+                    " with transaction ID: " + ctx.getTransactionId());
             inTransaction.set(true);
             transationId.set(ctx.getTransactionId());
 
         } else if (inTransaction.get() && !ctx.isInTransaction()) {
             // transaction ended, reset flag & id - because received ctx has transaction=false but client is transaction=true
-            Logger.info("Exiting transaction mode for client: " + socket.getRemoteSocketAddress());
+            Logger.info("Exiting transaction mode for client: " + socket.getRemoteSocketAddress()
+                    + " with transaction ID: " + transationId.get());
             inTransaction.set(false);
             transationId.set(null);
         }
