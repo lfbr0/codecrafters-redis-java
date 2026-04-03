@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
+import static serdes.RedisMessage.RedisMessageType.INTEGER;
+
 public class ExecCommand implements Command {
     @Override
     public CommandResponse execute(CommandContext context) throws Exception {
@@ -27,7 +30,13 @@ public class ExecCommand implements Command {
         List<byte[]> messagesRaw = TransactionManager.commitTransaction(transactionId);
         List<RedisMessage> messages = new ArrayList<>(messagesRaw.size());
         for (byte[] messageRaw : messagesRaw) {
-            messages.add(RedisDeserializer.deserialize(messageRaw));
+            RedisMessage message = RedisDeserializer.deserialize(messageRaw);
+            // convert integers to bulk strings because that's how Redis does it
+            if (message.getType() == INTEGER) {
+                message.setType(BULK_STRING);
+                message.setContent(Integer.toString((Integer) message.getContent()));
+            }
+            messages.add(message);
         }
 
         return new CommandResponse(RedisSerializer.list(messages));
