@@ -18,6 +18,10 @@ public class TransactionManager {
         return uuid;
     }
 
+    public static void abortTransaction(UUID discardedTransactionId) {
+        transactionToOperations.remove(discardedTransactionId);
+    }
+
     public static void addOperation(UUID transactionId, Callable<byte[]> operation) {
         transactionToOperations.computeIfPresent(transactionId, (id, operations) -> {
             operations.add(operation);
