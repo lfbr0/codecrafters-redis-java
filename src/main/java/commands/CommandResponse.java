@@ -13,7 +13,7 @@ public class CommandResponse {
     }
 
     public static CommandResponse queued() {
-        return new CommandResponse(RedisSerializer.okString());
+        return new CommandResponse(RedisSerializer.simpleString("QUEUED"));
     }
 
     public byte[] getResponseBytes() {
