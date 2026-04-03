@@ -187,4 +187,24 @@ public class MemoryManager {
             readLock.unlock();
         }
     }
+
+    /**
+     * Returns the length of the list stored at listKey. If the list does not exist, it returns 0.
+     * @param key the key of the list to get the length of
+     * @return the length of the list, or 0 if the list does not exist
+     */
+    public static int lengthOfList(String key) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("list[" + key + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            Logger.info("Getting length of list: " + key);
+            List<RedisMessage> list = listStore.get(key);
+            return list == null ? 0 : list.size();
+        } finally {
+            readLock.unlock();
+        }
+    }
 }

@@ -38,7 +38,6 @@ public class RedisClientHandler implements Runnable {
 
                 handleMessage(message);
             }
-            socket.getOutputStream().write("+PONG\r\n".getBytes());
         } catch (Exception e) {
             Logger.error("Failed to interpret command: " + e.getMessage(), e);
         }
