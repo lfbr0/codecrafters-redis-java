@@ -2,6 +2,8 @@ package commands;
 
 import serdes.RedisSerializer;
 
+import java.util.Arrays;
+
 public class CommandResponse {
 
     private final byte[] responseBytes;
@@ -18,4 +20,8 @@ public class CommandResponse {
         return responseBytes;
     }
 
+    @Override
+    public String toString() {
+        return "CommandResponse{" + new String(responseBytes) + '}';
+    }
 }

@@ -94,23 +94,10 @@ public class RedisClientHandler implements Runnable {
             Logger.info("Entering transaction mode for client: " + socket.getRemoteSocketAddress());
             inTransaction.set(true);
             transationId.set(ctx.getTransactionId());
-        } else if (inTransaction.get()) {
-            // since we are in transaction but received a non-transaction command, we should exit transaction mode
-            Logger.info("Exiting transaction mode for client: " + socket.getRemoteSocketAddress());
-            inTransaction.set(false);
-            // execute all transactions
-            List<byte[]> messagesRaw = TransactionManager.commitTransaction(transationId.get());
-            List<RedisMessage> messages = new ArrayList<>(messagesRaw.size());
-            for (byte[] messageRaw : messagesRaw) {
-                messages.add(RedisDeserializer.deserialize(messageRaw));
-            }
-            // transform to response bytes and write to client
-            socket.getOutputStream().write(RedisSerializer.list(messages));
-            // exit transaction mode and clear transaction id
-            return;
         }
 
         // write to client response
+        Logger.info("Sending response to client: " + socket.getRemoteSocketAddress() + " - " + commandResponse);
         socket.getOutputStream().write(commandResponse.getResponseBytes());
     }
 }

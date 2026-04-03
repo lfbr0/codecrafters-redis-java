@@ -41,9 +41,11 @@ public class CommandContext {
         this.transactionId = transactionId;
     }
 
-    public void endTransaction() {
+    public UUID endTransaction() {
+        UUID oldTransactionId = UUID.fromString(this.transactionId.toString());
         this.isInTransaction = false;
         this.transactionId = null;
+        return oldTransactionId;
     }
 
     @Override
