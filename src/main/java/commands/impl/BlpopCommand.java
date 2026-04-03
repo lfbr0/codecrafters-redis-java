@@ -40,7 +40,10 @@ public class BlpopCommand implements Command {
         if (poppedValue == null) {
             context.getOutputStream().write(RedisSerializer.nullArray());
         } else {
-            RedisMessage keyMessage = RedisSerializer.bulkString(key);
+            RedisMessage keyMessage = new RedisMessage();
+            keyMessage.setType(RedisMessage.RedisMessageType.BULK_STRING);
+            keyMessage.setContent(key);
+            // write response as an array of [key, poppedValue]
             context.getOutputStream().write(RedisSerializer.list(List.of(keyMessage, poppedValue)));
         }
     }

@@ -67,11 +67,11 @@ public class RedisSerializer {
         return "*-1\r\n".getBytes();
     }
 
-    public static RedisMessage bulkString(String key) {
+    public static byte[] bulkString(String key) {
         RedisMessage redisMessage = new RedisMessage();
         redisMessage.setType(RedisMessage.RedisMessageType.BULK_STRING);
         redisMessage.setContent(key);
-        return redisMessage;
+        return serialize(redisMessage);
     }
 
     public static byte[] simpleString(String value) {
