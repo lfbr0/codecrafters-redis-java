@@ -75,4 +75,10 @@ public class SetCommand implements Command {
     public boolean matches(String commandName) {
         return "set".equalsIgnoreCase(commandName);
     }
+
+    @Override
+    public boolean isWriteCommand() {
+        return true;
+    }
+
 }
