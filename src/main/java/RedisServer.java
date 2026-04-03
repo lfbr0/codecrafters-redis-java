@@ -1,4 +1,5 @@
 import logger.Logger;
+import replication.ReplicationManager;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -13,11 +14,16 @@ public class RedisServer implements AutoCloseable {
             newCachedThreadPool(r -> new Thread(r, "client-handler-thread"));
     private volatile boolean running = true;
 
-    public void start(RedisServerConfiguration redisServerConfiguration) throws IOException {
-        ServerSocket serverSocket = new ServerSocket(redisServerConfiguration.getPort());
+    public void start(RedisServerConfiguration serverConfiguration) throws IOException {
+        ServerSocket serverSocket = new ServerSocket(serverConfiguration.getPort());
         serverSocket.setReuseAddress(true);
 
-        Logger.info("Redis server is listening on port {}", redisServerConfiguration.getPort());
+        // if there is master host and master port, then it's a slave server and we need to replicate from master
+        if (serverConfiguration.getMasterHost() != null && serverConfiguration.getMasterPort() != null) {
+            ReplicationManager.replicateFrom(serverConfiguration.getMasterHost(), serverConfiguration.getMasterPort());
+        }
+
+        Logger.info("Redis server is listening on port {}", serverConfiguration.getPort());
         while (running) {
             try {
                 Socket clientSocket = serverSocket.accept();
