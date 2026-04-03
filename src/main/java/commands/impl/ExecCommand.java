@@ -31,11 +31,22 @@ public class ExecCommand implements Command {
         List<RedisMessage> messages = new ArrayList<>(messagesRaw.size());
         for (byte[] messageRaw : messagesRaw) {
             RedisMessage message = RedisDeserializer.deserialize(messageRaw);
+
             // convert integers to bulk strings because that's how Redis does it
             if (message.getType() == INTEGER) {
                 message.setType(BULK_STRING);
-                message.setContent(Integer.toString((Integer) message.getContent()));
+
+                String content;
+                if (message.getContent() instanceof Integer) {
+                    int value = (Integer) message.getContent();
+                    content = Integer.toString(value);
+                } else {
+                    content = message.getContent().toString();
+                }
+
+                message.setContent(content.getBytes());
             }
+
             messages.add(message);
         }
 
