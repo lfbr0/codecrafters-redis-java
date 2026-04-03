@@ -1,14 +1,17 @@
 package replication;
 
+import logger.Logger;
+
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ReplicationManager {
 
     // state vars
     private static final AtomicBoolean isMaster = new AtomicBoolean(true);
-    private static final String masterReplId = generateMasterReplicationId();
+    private static final AtomicReference<String> masterReplId = new AtomicReference<>(generateMasterReplicationId());
     private static final AtomicLong masterReplOffset = new AtomicLong(0);
 
     // replication thread to do it concurrently
@@ -34,6 +37,14 @@ public class ReplicationManager {
         // start replication thread
         replicationThread = new ReplicationThread(masterHost, masterPort, myPort);
         replicationThread.start();
+        // wait for it to finish & gather master info
+        try {
+            replicationThread.join();
+            Logger.info("SETTING NEW MASTER REPLICATION ID: " + replicationThread.getMasterReplicationId());
+            masterReplId.set(replicationThread.getMasterReplicationId());
+        } catch (InterruptedException e) {
+            Logger.error("Replication thread was interrupted!", e);
+        }
     }
 
     /**

@@ -13,6 +13,7 @@ public class ReplicationThread extends Thread {
     private final String masterHost;
     private final int masterPort;
     private final int myPort;
+    private String masterReplicationId;
 
     public ReplicationThread(String masterHost, int masterPort, int myPort) {
         super("RedisSlaveReplicationThread");
@@ -50,9 +51,27 @@ public class ReplicationThread extends Thread {
             assert masterResp != null && masterResp.getType() == RedisMessage.RedisMessageType.SIMPLE_STRING;
             assert masterResp.getContent().toString().equalsIgnoreCase("OK");
 
+            // phase 3 - send PSYNC and get replication id
+            List<String> psyncList = List.of("PSYNC", "?", "-1");
+            socket.getOutputStream().write(RedisSerializer.listStrings(psyncList));
+            masterResp = RedisDeserializer.deserialize(socket.getInputStream().readNBytes(52));
+            Logger.info("Phase 3 - Received message from master " + masterResp);
+            assert masterResp != null && masterResp.getType() == RedisMessage.RedisMessageType.SIMPLE_STRING;
+            assert masterResp.getContent().toString().startsWith("FULLRESYNC");
+            // save replication id from master
+            this.masterReplicationId = masterResp.getContent().toString().split(" ")[1];
+            Logger.info("Received master replication id from master=[" + masterReplicationId + "]");
 
         } catch (Exception ex) {
             Logger.error("Failed to replicate: " + ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * Returns master replication id gathered from replication phases
+     * @return master replication id
+     */
+    public String getMasterReplicationId() {
+        return masterReplicationId;
     }
 }
