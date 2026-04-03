@@ -16,6 +16,10 @@ public class CommandResponse {
         return new CommandResponse(RedisSerializer.simpleString("QUEUED"));
     }
 
+    public static CommandResponse ok() {
+        return new CommandResponse(RedisSerializer.okString());
+    }
+
     public byte[] getResponseBytes() {
         return responseBytes;
     }
