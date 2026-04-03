@@ -31,7 +31,7 @@ public class ReplicationThread extends Thread {
             // phase 1 - send PING as RESP array & expect PONG back
             socket.getOutputStream().write(RedisSerializer.listStrings(List.of("PING")));
             // read message back
-            RedisMessage masterResp = RedisDeserializer.deserialize(socket.getInputStream().readAllBytes());
+            RedisMessage masterResp = RedisDeserializer.deserialize(socket.getInputStream().readNBytes(7));
             Logger.info("Phase 1 - Received message from master: " + masterResp);
             assert masterResp != null && masterResp.getType() == RedisMessage.RedisMessageType.SIMPLE_STRING;
             assert masterResp.getContent().toString().equalsIgnoreCase("PONG");
