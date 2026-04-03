@@ -11,6 +11,10 @@ public class ReplicationManager {
     private static final String masterReplId = generateMasterReplicationId();
     private static final AtomicLong masterReplOffset = new AtomicLong(0);
 
+    // replication thread to do it concurrently
+    private static ReplicationThread replicationThread;
+
+
     /**
      * Generates master replication id
      * @return A 40-character alphanumeric string
@@ -27,6 +31,9 @@ public class ReplicationManager {
     public static void replicateFrom(String masterHost, int masterPort) {
         // mark as slave - master by default
         isMaster.set(false);
+        // start replication thread
+        replicationThread = new ReplicationThread(masterHost, masterPort);
+        replicationThread.start();
     }
 
     /**
