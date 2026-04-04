@@ -1,16 +1,15 @@
+package handler;
+
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import commands.CommandRouter;
-import data.TransactionManager;
 import logger.Logger;
 import replication.ReplicationManager;
 import serdes.RedisDeserializer;
 import serdes.RedisMessage;
-import serdes.RedisSerializer;
 
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,21 +22,26 @@ public class RedisClientHandler implements Runnable {
 
     private final Socket socket;
     private final AtomicBoolean inTransaction = new AtomicBoolean(false);
-    private final AtomicReference<UUID> transationId = new AtomicReference<>(null);
+    private final AtomicReference<UUID> transactionId = new AtomicReference<>(null);
+    private final AtomicBoolean shouldSendResponse = new AtomicBoolean(true);
 
     public RedisClientHandler(Socket socket) {
         this.socket = socket;
     }
 
+    public RedisClientHandler(Socket socket, boolean shouldSendResponse) {
+        this(socket);
+        this.shouldSendResponse.set(shouldSendResponse);
+    }
+
     @Override
     public void run() {
         try {
+            Logger.info("Starting RedisClientHandler for " + socket.getRemoteSocketAddress());
             while (socket.isConnected()) {
                 RedisMessage message = RedisDeserializer.deserialize(socket.getInputStream());
                 if (message == null) {
-                    Logger.error("Received null message from client. Closing connection.");
-                    socket.close();
-                    return;
+                    continue;
                 }
 
                 Logger.info("Received message: " + message);
@@ -47,7 +51,25 @@ public class RedisClientHandler implements Runnable {
                     continue;
                 }
 
-                handleMessage(message);
+                CommandResponse commandResponse = handleMessage(message);
+                // reply to client if we have response and WE SHOULD RESPOND
+                // if slave client, then no need to send response - we're joing doing our master's bidding
+                boolean shouldSendResponse = this.shouldSendResponse.get();
+                if (commandResponse == null || !shouldSendResponse) {
+                    Logger.info("Will not respond back to client -> " +
+                            "resp is null=" + (commandResponse == null) + " shouldSendResponse=" + shouldSendResponse);
+                    continue;
+                }
+
+                // write to client response
+                Logger.info("Sending response to client: " + socket.getRemoteSocketAddress() + " - " + commandResponse);
+                socket.getOutputStream().write(commandResponse.getResponseBytes());
+
+                // execute post response callback - if it exists
+                CommandResponse.CommandPostResponseCallback postRespCb = commandResponse.getPostResponseCallback();
+                if (postRespCb != null) {
+                    postRespCb.postResponse(socket.getOutputStream());
+                }
             }
         } catch (Exception e) {
             Logger.error("Failed to interpret command: " + e.getMessage(), e);
@@ -58,22 +80,22 @@ public class RedisClientHandler implements Runnable {
      * Handles the incoming Redis message and executes the corresponding command.
      * @param message array message containing the command and its arguments
      */
-    private void handleMessage(RedisMessage message) throws Exception {
+    private CommandResponse handleMessage(RedisMessage message) throws Exception {
         if (message.getContent() == null || !(message.getContent() instanceof List)) {
             Logger.error("Invalid message content: expected a list of RedisMessage, but got: " + message.getContent());
-            return;
+            return null;
         }
 
         List<RedisMessage> elements = (List<RedisMessage>) message.getContent();
         if (elements.isEmpty()) {
             Logger.error("Received an empty command array.");
-            return;
+            return null;
         }
 
         // match to commands
         if (elements.getFirst().getType() != BULK_STRING) {
             Logger.error("Expected the first element to be a bulk string command, but got: " + elements.getFirst().getType());
-            return;
+            return null;
         }
 
         CommandContext ctx = new CommandContext(
@@ -83,7 +105,7 @@ public class RedisClientHandler implements Runnable {
 
         if (inTransaction.get()) {
             Logger.info("Received a command while in transaction mode. Commands will be queued until MULTI is executed.");
-            ctx.startTransaction(transationId.get());
+            ctx.startTransaction(transactionId.get());
         }
 
         Logger.info("Context info: " + ctx);
@@ -103,24 +125,16 @@ public class RedisClientHandler implements Runnable {
             Logger.info("Entering transaction mode for client: " + socket.getRemoteSocketAddress() +
                     " with transaction ID: " + ctx.getTransactionId());
             inTransaction.set(true);
-            transationId.set(ctx.getTransactionId());
+            transactionId.set(ctx.getTransactionId());
 
         } else if (inTransaction.get() && !ctx.isInTransaction()) {
             // transaction ended, reset flag & id - because received ctx has transaction=false but client is transaction=true
             Logger.info("Exiting transaction mode for client: " + socket.getRemoteSocketAddress()
-                    + " with transaction ID: " + transationId.get());
+                    + " with transaction ID: " + transactionId.get());
             inTransaction.set(false);
-            transationId.set(null);
+            transactionId.set(null);
         }
 
-        // write to client response
-        Logger.info("Sending response to client: " + socket.getRemoteSocketAddress() + " - " + commandResponse);
-        socket.getOutputStream().write(commandResponse.getResponseBytes());
-
-        // execute post response callback - if it exists
-        CommandResponse.CommandPostResponseCallback postRespCb = commandResponse.getPostResponseCallback();
-        if (postRespCb != null) {
-            postRespCb.postResponse(socket.getOutputStream());
-        }
+        return commandResponse;
     }
 }

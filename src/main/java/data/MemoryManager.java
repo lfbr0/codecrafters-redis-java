@@ -117,22 +117,44 @@ public class MemoryManager {
             writeLock.lock();
             Logger.info("Incrementing key: " + key);
             RedisMessage currentValue = keyValueStore.get(key);
-            RedisMessage newValue;
 
-            if (currentValue == null) {
-                newValue = new RedisMessage();
-                newValue.setType(RedisMessage.RedisMessageType.INTEGER);
-                newValue.setContent(1);
-            } else if (currentValue.getType() == RedisMessage.RedisMessageType.INTEGER) {
-                newValue = new RedisMessage();
-                newValue.setType(RedisMessage.RedisMessageType.INTEGER);
-                newValue.setContent((Integer) currentValue.getContent() + 1);
+            int nextValue;
+            if (currentValue == null || currentValue.getContent() == null) {
+                nextValue = 1;
             } else {
-                throw new IllegalArgumentException("ERR value is not an integer or out of range");
+                Object rawContent = currentValue.getContent();
+
+                try {
+                    switch (currentValue.getType()) {
+                        case INTEGER:
+                            if (rawContent instanceof Integer intValue) {
+                                nextValue = intValue + 1;
+                            } else if (rawContent instanceof Long longValue) {
+                                nextValue = Math.toIntExact(longValue + 1);
+                            } else {
+                                nextValue = Integer.parseInt(rawContent.toString()) + 1;
+                            }
+                            break;
+
+                        case BULK_STRING:
+                        case SIMPLE_STRING:
+                            nextValue = Integer.parseInt(rawContent.toString()) + 1;
+                            break;
+
+                        default:
+                            throw new IllegalArgumentException("ERR value is not an integer or out of range");
+                    }
+                } catch (NumberFormatException | ArithmeticException e) {
+                    throw new IllegalArgumentException("ERR value is not an integer or out of range");
+                }
             }
 
+            RedisMessage newValue = new RedisMessage();
+            newValue.setType(RedisMessage.RedisMessageType.INTEGER);
+            newValue.setContent(nextValue);
+
             keyValueStore.put(key, newValue);
-            return (Integer) newValue.getContent();
+            return nextValue;
         } finally {
             writeLock.unlock();
         }

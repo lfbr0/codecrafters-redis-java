@@ -54,13 +54,22 @@ public class SetCommand implements Command {
             }
 
             RedisMessage expireValueRaw = context.getArguments().get(3);
-            if (expireValueRaw.getType() != RedisMessage.RedisMessageType.INTEGER) {
+            int expireValue;
+            if (expireValueRaw.getType() == RedisMessage.RedisMessageType.BULK_STRING) {
+                expireValue = Integer.parseInt(expireValueRaw.getContent().toString());
+            } else if (expireValueRaw.getType() == RedisMessage.RedisMessageType.INTEGER) {
+                if (expireValueRaw.getContent() instanceof Integer) {
+                    expireValue = (Integer) expireValueRaw.getContent();
+                } else if (expireValueRaw.getContent() instanceof Long) {
+                    expireValue = ((Long) expireValueRaw.getContent()).intValue();
+                } else {
+                    expireValue = Integer.parseInt(expireValueRaw.getContent().toString());
+                }
+            } else {
                 throw new IllegalArgumentException("Expiration value must be an integer");
             }
 
             String expireType = (String) expireTypeRaw.getContent();
-            int expireValue = (Integer) expireValueRaw.getContent();
-
             Duration expireDuration = switch (expireType.toUpperCase()) {
                 case "EX" -> Duration.ofSeconds(expireValue);
                 case "PX" -> Duration.ofMillis(expireValue);

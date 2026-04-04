@@ -8,13 +8,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ReplicationManager {
+
+    private static final long REPLICATION_TIMEOUT_MINUTES = 3;
 
     // state vars
     private static final AtomicBoolean isMaster = new AtomicBoolean(true);
@@ -23,7 +24,7 @@ public class ReplicationManager {
 
     // replication thread to do it concurrently
     private static SlaveReplicationThread slaveReplicationThread;
-    private static final ExecutorService replicationMasterThreadPool = Executors.newVirtualThreadPerTaskExecutor();
+    private static final ExecutorService virtualThreadPool = Executors.newVirtualThreadPerTaskExecutor();
     private static final List<MasterReplicationTask> replicationMasterTasks = Collections.synchronizedList(new ArrayList<>());
 
 
@@ -44,13 +45,21 @@ public class ReplicationManager {
         // mark as slave - master by default
         isMaster.set(false);
         // start replication thread
-        slaveReplicationThread = new SlaveReplicationThread(masterHost, masterPort, myPort);
+        BlockingQueue<String> slaveReplicationIdRespQueue = new LinkedBlockingQueue<>();
+        slaveReplicationThread = new SlaveReplicationThread(masterHost, masterPort, myPort, slaveReplicationIdRespQueue);
         slaveReplicationThread.start();
         // wait for it to finish & gather master info
         try {
+            String masterReplicationId = slaveReplicationIdRespQueue.poll(REPLICATION_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+            Logger.info("SETTING NEW MASTER REPLICATION ID: " + masterReplicationId);
+            masterReplId.set(masterReplicationId);
+            // start handler for client
             slaveReplicationThread.join();
-            Logger.info("SETTING NEW MASTER REPLICATION ID: " + slaveReplicationThread.getMasterReplicationId());
-            masterReplId.set(slaveReplicationThread.getMasterReplicationId());
+            Runnable slaveRunnable = slaveReplicationThread.getSlaveReplicationHandler();
+            if (slaveRunnable != null) {
+                Logger.info("Starting runnable for Slave Listener...");
+                virtualThreadPool.submit(slaveRunnable);
+            }
         } catch (InterruptedException e) {
             Logger.error("Replication thread was interrupted!", e);
         }
@@ -62,7 +71,7 @@ public class ReplicationManager {
      */
     public static void replicateTo(OutputStream slaveOutputStream) {
         MasterReplicationTask task = new MasterReplicationTask(slaveOutputStream);
-        replicationMasterThreadPool.submit(task);
+        virtualThreadPool.submit(task);
         replicationMasterTasks.add(task);
     }
 
