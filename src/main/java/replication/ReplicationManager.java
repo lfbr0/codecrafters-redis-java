@@ -101,4 +101,7 @@ public class ReplicationManager {
 
     public static long getMasterReplOffset() { return masterReplOffset.get(); }
 
+    public static long addMasterReplOffsetBytes(int bytes) {
+        return masterReplOffset.addAndGet(bytes);
+    }
 }

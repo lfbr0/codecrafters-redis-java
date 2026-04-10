@@ -52,27 +52,38 @@ public class RedisClientHandler implements Runnable {
                 }
 
                 CommandResponse commandResponse = handleMessage(message);
+                boolean sendCommandResponse = true;
                 // reply to client if we have response and WE SHOULD RESPOND
                 // if slave client, then no need to send response - we're joing doing our master's bidding
                 // unless command explicitly overrides
                 if (commandResponse == null) {
                     Logger.info("Will not respond back to client -> resp is null");
-                    continue;
+                    sendCommandResponse = false;
                 } else if (!commandResponse.isSendEvenIfSlave() && !this.shouldSendResponse.get()) {
                     // if should not override and should not send
                     Logger.info("Will not respond back to client -> " +
                             "isSendEvenIfSlave=false && shouldSendResponse=false");
-                    continue;
+                    sendCommandResponse = false;
                 }
 
-                // write to client response
-                Logger.info("Sending response to client: " + socket.getRemoteSocketAddress() + " - " + commandResponse);
-                socket.getOutputStream().write(commandResponse.getResponseBytes());
+                // if should send, then send it
+                if (sendCommandResponse) {
+                    // write to client response
+                    Logger.info("Sending response to client: " + socket.getRemoteSocketAddress() + " - " + commandResponse);
+                    socket.getOutputStream().write(commandResponse.getResponseBytes());
 
-                // execute post response callback - if it exists
-                CommandResponse.CommandPostResponseCallback postRespCb = commandResponse.getPostResponseCallback();
-                if (postRespCb != null) {
-                    postRespCb.postResponse(socket.getOutputStream());
+                    // execute post response callback - if it exists
+                    CommandResponse.CommandPostResponseCallback postRespCb = commandResponse.getPostResponseCallback();
+                    if (postRespCb != null) {
+                        postRespCb.postResponse(socket.getOutputStream());
+                    }
+                }
+
+                // increment bytes received if slave
+                if (!ReplicationManager.isMaster()) {
+                    Logger.info("Received bytes as slaved incremented, now is: " +
+                            ReplicationManager.addMasterReplOffsetBytes(message.getContentBytes().length)
+                    );
                 }
             }
         } catch (Exception e) {
