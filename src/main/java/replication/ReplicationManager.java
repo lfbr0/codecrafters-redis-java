@@ -79,6 +79,10 @@ public class ReplicationManager {
         replicationMasterTasks.forEach(t -> t.replicate(message));
     }
 
+    public static int getReplicaCount() {
+        return replicationMasterTasks.size();
+    }
+
     /**
      * Returns all server info as it stands...
      * @return all info

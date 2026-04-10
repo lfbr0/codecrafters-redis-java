@@ -4,6 +4,7 @@ import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import logger.Logger;
+import replication.ReplicationManager;
 import serdes.RedisDeserializer;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
@@ -27,7 +28,7 @@ public class WaitCommand implements Command {
         long timeout = Long.parseLong(timeoutRaw.getContent().toString());
         Logger.info("Performing wait command with numReplicas=" + numReplicas + ", timeout=" + timeout);
 
-        int ackedReplicas = 0;
+        int ackedReplicas = ReplicationManager.getReplicaCount();
         return new CommandResponse(RedisSerializer.integer(ackedReplicas));
     }
 
