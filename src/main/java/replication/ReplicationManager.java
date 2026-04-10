@@ -79,8 +79,10 @@ public class ReplicationManager {
         replicationMasterTasks.forEach(t -> t.replicate(message));
     }
 
-    public static int getReplicaCount() {
-        return replicationMasterTasks.size();
+    public static long getReplicaCount() {
+        return replicationMasterTasks.stream()
+                .filter(Thread::isAlive)
+                .count();
     }
 
     /**

@@ -49,7 +49,7 @@ public class RedisSerializer {
         return "+OK\r\n".getBytes();
     }
 
-    public static byte[] integer(int value) {
+    public static byte[] integer(long value) {
         RedisMessage redisMessage = new RedisMessage();
         redisMessage.setType(RedisMessage.RedisMessageType.INTEGER);
         redisMessage.setContent(value);

@@ -28,7 +28,7 @@ public class WaitCommand implements Command {
         long timeout = Long.parseLong(timeoutRaw.getContent().toString());
         Logger.info("Performing wait command with numReplicas=" + numReplicas + ", timeout=" + timeout);
 
-        int ackedReplicas = ReplicationManager.getReplicaCount();
+        long ackedReplicas = ReplicationManager.getReplicaCount();
         return new CommandResponse(RedisSerializer.integer(ackedReplicas));
     }
 
