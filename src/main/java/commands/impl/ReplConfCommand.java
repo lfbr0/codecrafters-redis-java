@@ -5,7 +5,11 @@ import commands.CommandContext;
 import commands.CommandResponse;
 import logger.Logger;
 import replication.ReplicationManager;
+import serdes.RedisDeserializer;
 import serdes.RedisMessage;
+import serdes.RedisSerializer;
+
+import java.util.List;
 
 import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
 import static serdes.RedisMessage.RedisMessageType.INTEGER;
@@ -24,6 +28,8 @@ public class ReplConfCommand implements Command {
         }
 
         String argumentField = argumentFieldRaw.getContent().toString();
+
+        // listening-port arg
         if (argumentField.equalsIgnoreCase("listening-port")) {
             int slavePort;
             if (argumentValueRaw.getType() == INTEGER) {
@@ -35,6 +41,16 @@ public class ReplConfCommand implements Command {
 
             // add to ReplicationManager that a slave is subscribed to write events
             ReplicationManager.replicateTo(context.getOutputStream());
+        }
+
+        // getack arg - for when this is slave node
+        if (argumentField.equalsIgnoreCase("getack") && !ReplicationManager.isMaster()) {
+            // respond to master with offset
+            String offsetStr = Long.toString(ReplicationManager.getMasterReplOffset());
+            return new CommandResponse(
+                    RedisSerializer.listStrings(List.of("REPLCONF", "ACK", offsetStr)),
+                    true
+            );
         }
 
         return CommandResponse.ok();

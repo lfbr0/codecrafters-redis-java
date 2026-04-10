@@ -54,10 +54,14 @@ public class RedisClientHandler implements Runnable {
                 CommandResponse commandResponse = handleMessage(message);
                 // reply to client if we have response and WE SHOULD RESPOND
                 // if slave client, then no need to send response - we're joing doing our master's bidding
-                boolean shouldSendResponse = this.shouldSendResponse.get();
-                if (commandResponse == null || !shouldSendResponse) {
+                // unless command explicitly overrides
+                if (commandResponse == null) {
+                    Logger.info("Will not respond back to client -> resp is null");
+                    continue;
+                } else if (!commandResponse.isSendEvenIfSlave() && !this.shouldSendResponse.get()) {
+                    // if should not override and should not send
                     Logger.info("Will not respond back to client -> " +
-                            "resp is null=" + (commandResponse == null) + " shouldSendResponse=" + shouldSendResponse);
+                            "isSendEvenIfSlave=false && shouldSendResponse=false");
                     continue;
                 }
 

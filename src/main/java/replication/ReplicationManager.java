@@ -96,4 +96,9 @@ public class ReplicationManager {
     public static String getReplicationId() {
         return masterReplId.get();
     }
+
+    public static boolean isMaster() { return isMaster.get(); }
+
+    public static long getMasterReplOffset() { return masterReplOffset.get(); }
+
 }

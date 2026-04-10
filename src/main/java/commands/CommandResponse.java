@@ -20,15 +20,24 @@ public class CommandResponse {
 
     private final byte[] responseBytes;
     private final CommandPostResponseCallback postResponseCallback;
+    private final boolean sendEvenIfSlave; // send this response even if a slave
 
     public CommandResponse(byte[] responseBytes) {
         this.responseBytes = responseBytes;
         this.postResponseCallback = null;
+        this.sendEvenIfSlave = false;
     }
 
     public CommandResponse(byte[] responseBytes, CommandPostResponseCallback postResponseCallback) {
         this.responseBytes = responseBytes;
         this.postResponseCallback = postResponseCallback;
+        this.sendEvenIfSlave = false;
+    }
+
+    public CommandResponse(byte[] responseBytes, boolean sendEvenIfSlave) {
+        this.responseBytes = responseBytes;
+        this.postResponseCallback = null;
+        this.sendEvenIfSlave = sendEvenIfSlave;
     }
 
     public static CommandResponse queued() {
@@ -45,6 +54,10 @@ public class CommandResponse {
 
     public CommandPostResponseCallback getPostResponseCallback() {
         return postResponseCallback;
+    }
+
+    public boolean isSendEvenIfSlave() {
+        return sendEvenIfSlave;
     }
 
     @Override
