@@ -24,9 +24,11 @@ public class RedisClientHandler implements Runnable {
     private final AtomicBoolean inTransaction = new AtomicBoolean(false);
     private final AtomicReference<UUID> transactionId = new AtomicReference<>(null);
     private final AtomicBoolean shouldSendResponse = new AtomicBoolean(true);
+    private final UUID clientUUID;
 
     public RedisClientHandler(Socket socket) {
         this.socket = socket;
+        clientUUID = UUID.randomUUID();
     }
 
     public RedisClientHandler(Socket socket, boolean shouldSendResponse) {
@@ -114,6 +116,7 @@ public class RedisClientHandler implements Runnable {
         }
 
         CommandContext ctx = new CommandContext(
+                clientUUID,
                 socket.getOutputStream(),
                 elements.stream().skip(1).toList() // ignore command name, pass only arguments
         );
@@ -126,8 +129,8 @@ public class RedisClientHandler implements Runnable {
         Logger.info("Context info: " + ctx);
         Command command = CommandRouter.getCommand((String) elements.getFirst().getContent());
 
-        // replication - if write command, replicate to slaves
-        if (command.isWriteCommand()) {
+        // replication - if write command, replicate to slaves if master
+        if (command.isWriteCommand() && ReplicationManager.isMaster()) {
             Logger.info("Command " + command + " is write, so replicating message=" + message);
             ReplicationManager.replicate(message);
         }

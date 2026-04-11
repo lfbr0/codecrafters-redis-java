@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public class CommandContext {
 
+    private final UUID clientUUID;
     private final transient OutputStream outputStream;
     private final List<RedisMessage> arguments;
 
@@ -15,9 +16,14 @@ public class CommandContext {
     private boolean isInTransaction = false;
     private UUID transactionId;
 
-    public CommandContext(OutputStream outputStream, List<RedisMessage> arguments) {
+    public CommandContext(UUID clientUUID, OutputStream outputStream, List<RedisMessage> arguments) {
+        this.clientUUID = clientUUID;
         this.outputStream = outputStream;
         this.arguments = arguments;
+    }
+
+    public UUID getClientUUID() {
+        return clientUUID;
     }
 
     public OutputStream getOutputStream() {

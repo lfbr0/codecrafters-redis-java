@@ -40,7 +40,7 @@ public class ReplConfCommand implements Command {
             Logger.info("REPLCONF received slave port " + slavePort);
 
             // add to ReplicationManager that a slave is subscribed to write events
-            ReplicationManager.replicateTo(context.getOutputStream());
+            ReplicationManager.replicateTo(context.getClientUUID(), context.getOutputStream());
         }
 
         // getack arg - for when this is slave node
@@ -51,6 +51,13 @@ public class ReplConfCommand implements Command {
                     RedisSerializer.listStrings(List.of("REPLCONF", "ACK", offsetStr)),
                     true
             );
+        }
+
+        // ack offset - receive as master
+        if (argumentField.equalsIgnoreCase("ack") && ReplicationManager.isMaster()) {
+            long receivedBytesFromSlave = Long.parseLong(argumentValueRaw.getContent().toString());
+            ReplicationManager.setReplicaAcknowledge(context.getClientUUID(), receivedBytesFromSlave);
+            return null; // no reply
         }
 
         return CommandResponse.ok();

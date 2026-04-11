@@ -4,10 +4,7 @@ import logger.Logger;
 import serdes.RedisMessage;
 
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -22,11 +19,9 @@ public class ReplicationManager {
     private static final AtomicReference<String> masterReplId = new AtomicReference<>(generateMasterReplicationId());
     private static final AtomicLong masterReplOffset = new AtomicLong(0);
 
-    // replication thread to do it concurrently
-    private static SlaveReplicationThread slaveReplicationThread;
     private static final ExecutorService virtualThreadPool = Executors.newVirtualThreadPerTaskExecutor();
     private static final List<MasterReplicationTask> replicationMasterTasks = Collections.synchronizedList(new ArrayList<>());
-
+    private static final Map<UUID, BlockingQueue<Long>> slaveAcknowledgementQueues = new ConcurrentHashMap<>();
 
     /**
      * Generates master replication id
@@ -46,7 +41,9 @@ public class ReplicationManager {
         isMaster.set(false);
         // start replication thread
         BlockingQueue<String> slaveReplicationIdRespQueue = new LinkedBlockingQueue<>();
-        slaveReplicationThread = new SlaveReplicationThread(masterHost, masterPort, myPort, slaveReplicationIdRespQueue);
+        // replication thread to do it concurrently
+        SlaveReplicationThread slaveReplicationThread =
+                new SlaveReplicationThread(masterHost, masterPort, myPort, slaveReplicationIdRespQueue);
         slaveReplicationThread.start();
         // wait for it to finish & gather master info
         try {
@@ -67,24 +64,82 @@ public class ReplicationManager {
 
     /**
      * Starts replication to slave port as master
+     *
+     * @param clientUUID
      * @param slaveOutputStream slave to send info to
      */
-    public static void replicateTo(OutputStream slaveOutputStream) {
-        MasterReplicationTask task = new MasterReplicationTask(slaveOutputStream);
+    public static void replicateTo(UUID clientUUID, OutputStream slaveOutputStream) {
+        MasterReplicationTask task = new MasterReplicationTask(clientUUID, slaveOutputStream);
         virtualThreadPool.submit(task);
         replicationMasterTasks.add(task);
+        slaveAcknowledgementQueues.put(clientUUID, new LinkedBlockingQueue<>());
     }
 
     public static void replicate(RedisMessage message) {
+        // increment number of master bytes
+        masterReplOffset.addAndGet(message.getContentBytes().length);
+        // replicate to slaves
         replicationMasterTasks.forEach(t -> t.replicate(message));
     }
 
-    public static long getReplicaCount() {
-        AtomicLong listeningReplicaCount = new AtomicLong();
-        replicationMasterTasks.forEach(t -> {
-            if (t.isListening()) listeningReplicaCount.incrementAndGet();
-        });
-        return  listeningReplicaCount.get();
+    public static boolean setReplicaAcknowledge(UUID clientUUID, long bytes) {
+        Logger.info("Acknowledging for slave " + clientUUID + " received bytes: " + bytes);
+        return slaveAcknowledgementQueues.get(clientUUID).offer(bytes);
+    }
+
+    public static long getReplicaCount(long timeout) {
+        List<MasterReplicationTask> replicas = new ArrayList<>(replicationMasterTasks);
+        List<CompletableFuture<Boolean>> syncedReplicaCfs = new ArrayList<>(replicas.size());
+        long sentBytesToSlaves = getMasterReplOffset();
+        AtomicLong syncedUpReplicas = new AtomicLong(0);
+
+        for (MasterReplicationTask masterReplicationTask : replicas) {
+            if (!masterReplicationTask.isListening()) {
+                Logger.info("Skipping check for slave [" + masterReplicationTask.getSlaveId() + "], not listen!");
+                continue;
+            }
+
+            // sent no bytes, so we just want to know if is listening
+            if (sentBytesToSlaves == 0) {
+                syncedUpReplicas.incrementAndGet();
+                continue;
+            }
+
+            // job to get listened to bytes (down the future)
+            syncedReplicaCfs.add(CompletableFuture.supplyAsync(() -> {
+                // send request
+                masterReplicationTask.sendOffsetRequest();
+                // wait for received bytes
+                Logger.info("Slave[" + masterReplicationTask.getSlaveId() + "] waiting for received bytes...");
+                try {
+                    Long receivedBytes = slaveAcknowledgementQueues
+                            .get(masterReplicationTask.getSlaveId())
+                            .poll(timeout, TimeUnit.MILLISECONDS);
+                    Logger.info("Received for slave[" + masterReplicationTask.getSlaveId() + "] bytes: " + receivedBytes);
+
+                    // return if it matches sent bytes
+                    if (receivedBytes != null && receivedBytes >= sentBytesToSlaves) {
+                        syncedUpReplicas.incrementAndGet();
+                        return true;
+                    }
+                } catch (Exception ex) {
+                    Logger.error("Failed to receive bytes from slave[" + masterReplicationTask.getSlaveId() + "] " +
+                            "-> " + ex.getMessage(), ex);
+                }
+                return false;
+            }, virtualThreadPool));
+        }
+
+        try {
+            // wait for all with timeout
+            CompletableFuture
+                    .allOf(syncedReplicaCfs.toArray(CompletableFuture[]::new))
+                    .get(timeout, TimeUnit.SECONDS);
+        } catch (Exception ex) {
+            Logger.error("Failed to get for replicas ack -> " + ex.getMessage(), ex);
+        }
+
+        return syncedUpReplicas.get();
     }
 
     /**
