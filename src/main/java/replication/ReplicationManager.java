@@ -80,9 +80,11 @@ public class ReplicationManager {
     }
 
     public static long getReplicaCount() {
-        return replicationMasterTasks.stream()
-                .filter(Thread::isAlive)
-                .count();
+        AtomicLong listeningReplicaCount = new AtomicLong();
+        replicationMasterTasks.forEach(t -> {
+            if (t.isListening()) listeningReplicaCount.incrementAndGet();
+        });
+        return  listeningReplicaCount.get();
     }
 
     /**

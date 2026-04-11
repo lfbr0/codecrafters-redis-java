@@ -11,12 +11,14 @@ import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MasterReplicationTask extends Thread {
 
     private final UUID slaveId = UUID.randomUUID();
     private final OutputStream slaveOutputStream;
     private final BlockingQueue<RedisMessage> messageQueue;
+    private final AtomicBoolean listening = new AtomicBoolean(false);
 
     public MasterReplicationTask(OutputStream slaveOutputStream) {
         super("RedisMasterReplicationThread");
@@ -34,6 +36,8 @@ public class MasterReplicationTask extends Thread {
     public void run() {
         try {
             Logger.info("\t\tSlave[" + slaveId + "] ready to listen!");
+            listening.set(true);
+
             while (true) {
                 RedisMessage redisMessage = this.messageQueue.take();
                 Logger.info("\t\tSlave[" + slaveId + "] fetched message=" + redisMessage);
@@ -44,6 +48,11 @@ public class MasterReplicationTask extends Thread {
             Logger.error("\t\tFailed to replicate to slaves: " + ex.getMessage(), ex);
         } finally {
             Logger.info("\t\tClosing slave[" + slaveId + "]");
+            listening.set(false);
         }
+    }
+
+    public boolean isListening() {
+        return listening.get();
     }
 }
