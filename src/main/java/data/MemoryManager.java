@@ -28,7 +28,7 @@ public class MemoryManager {
     private static final Map<String, Queue<SynchronousQueue<RedisMessage>>> listPopSubs = new ConcurrentHashMap<>();
 
     // For sorted sets
-    private static final Map<String, SortedSet> sortedSetStore = new ConcurrentHashMap<>();
+    private static final Map<String, RedisSortedSet> sortedSetStore = new ConcurrentHashMap<>();
 
     /**
      * Sets the value for the given key in the memory store with an expiration duration.
@@ -371,8 +371,8 @@ public class MemoryManager {
         try {
             writeLock.lock();
             appended = sortedSetStore
-                    .computeIfAbsent(zSetKey, key -> new SortedSet())
-                    .add(new SortedSet.SortedSetEntry(zSetMember, zSetScore));
+                    .computeIfAbsent(zSetKey, key -> new RedisSortedSet())
+                    .add(new RedisSortedSet.RedisSortedSetEntry(zSetMember, zSetScore));
         } catch (Exception ex) {
             Logger.error(format("Error appending to set[%s] member[%s] rank[%f]\n", zSetKey, zSetMember, zSetScore), ex);
         } finally {
