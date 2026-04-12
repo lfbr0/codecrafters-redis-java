@@ -8,6 +8,8 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import static java.lang.String.format;
+
 /**
  * MemoryManager is a singleton class that manages the actual data held by Redis
  * It provides methods to set, get, and delete keys and values
@@ -25,6 +27,8 @@ public class MemoryManager {
     // For lists subscription
     private static final Map<String, Queue<SynchronousQueue<RedisMessage>>> listPopSubs = new ConcurrentHashMap<>();
 
+    // For sorted sets
+    private static final Map<String, SortedSet> sortedSetStore = new ConcurrentHashMap<>();
 
     /**
      * Sets the value for the given key in the memory store with an expiration duration.
@@ -352,6 +356,33 @@ public class MemoryManager {
     }
 
     /**
+     *
+     * @param zSetKey
+     * @param zSetMember
+     * @param zSetScore
+     * @return
+     */
+    public static boolean addToSortedSet(String zSetKey, String zSetMember, double zSetScore) {
+        ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
+                .getLock("sortedset[" + zSetKey + "]")
+                .writeLock();
+        boolean appended = false;
+
+        try {
+            writeLock.lock();
+            appended = sortedSetStore
+                    .computeIfAbsent(zSetKey, key -> new SortedSet())
+                    .add(new SortedSet.SortedSetEntry(zSetMember, zSetScore));
+        } catch (Exception ex) {
+            Logger.error(format("Error appending to set[%s] member[%s] rank[%f]\n", zSetKey, zSetMember, zSetScore), ex);
+        } finally {
+            writeLock.unlock();
+        }
+
+        return appended;
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist
@@ -362,6 +393,8 @@ public class MemoryManager {
             return "string";
         } else if (listStore.containsKey(key)) {
             return "list";
+        } else if (sortedSetStore.containsKey(key)) {
+            return "sortedset";
         } else {
             return null;
         }

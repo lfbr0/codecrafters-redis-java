@@ -21,7 +21,9 @@ public class CommandRouter {
             // Transaction commands
             new IncrCommand(), new MultiCommand(), new ExecCommand(), new DiscardCommand(),
             // Replication commands
-            new InfoCommand(), new ReplConfCommand(), new PsyncCommand(), new WaitCommand()
+            new InfoCommand(), new ReplConfCommand(), new PsyncCommand(), new WaitCommand(),
+            // Sorted sets
+            new ZAddCommand()
     };
 
     /**

@@ -1,0 +1,56 @@
+package commands.impl;
+
+import commands.Command;
+import commands.CommandContext;
+import commands.CommandResponse;
+import data.MemoryManager;
+import data.TransactionManager;
+import serdes.RedisMessage;
+import serdes.RedisSerializer;
+
+import java.util.concurrent.Callable;
+
+public class ZAddCommand implements Command {
+    @Override
+    public CommandResponse execute(CommandContext context) throws Exception {
+        if (context.getArguments() == null || context.getArguments().size() != 3) {
+            throw new IllegalArgumentException("INCR command requires exactly 3 argument");
+        }
+
+        RedisMessage zSetKeyRaw = context.getArguments().getFirst();
+        RedisMessage zSetScoreRaw = context.getArguments().get(1);
+        RedisMessage zSetMemberRaw = context.getArguments().getLast();
+        if (zSetKeyRaw.getType() != zSetScoreRaw.getType() ||
+            zSetMemberRaw.getType() != zSetScoreRaw.getType() ||
+            zSetScoreRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+            throw new IllegalArgumentException("Command only accepts bulk strings!");
+        }
+
+        String zSetKey = zSetKeyRaw.getContent().toString();
+        double zSetScore = Double.parseDouble(zSetScoreRaw.getContent().toString());
+        String zSetMember = zSetMemberRaw.getContent().toString();
+
+        Callable<byte[]> operation = () -> {
+            // if added = 1; if not = 0
+            int result = MemoryManager.addToSortedSet(zSetKey, zSetMember, zSetScore) ? 1 : 0;
+            return RedisSerializer.integer(result);
+        };
+
+        if (context.isInTransaction()) {
+            TransactionManager.addOperation(context.getTransactionId(), operation);
+            return CommandResponse.queued();
+        } else {
+            return new CommandResponse(operation.call());
+        }
+    }
+
+    @Override
+    public boolean matches(String commandName) {
+        return "zadd".equalsIgnoreCase(commandName);
+    }
+
+    @Override
+    public boolean isWriteCommand() {
+        return true;
+    }
+}
