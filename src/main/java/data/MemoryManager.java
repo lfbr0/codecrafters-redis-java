@@ -383,6 +383,32 @@ public class MemoryManager {
     }
 
     /**
+     * Returns index/rank of member of sorted set
+     * @param zSetKey sorted set
+     * @param zSetMember sorted set member
+     * @return index optional
+     */
+    public static Optional<Integer> rankFromSortedSet(String zSetKey, String zSetMember) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("sortedset[" + zSetKey + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            RedisSortedSet set = sortedSetStore.get(zSetKey);
+            if (set == null) {
+                return Optional.empty();
+            }
+            return set.indexOf(zSetMember);
+        } catch (Exception e) {
+            Logger.error("Failed to retrieve rank from sorted set -> " + e.getMessage(), e);
+        } finally {
+            readLock.unlock();
+        }
+        return Optional.empty();
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist

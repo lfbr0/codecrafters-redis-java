@@ -1,15 +1,20 @@
 package data;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.*;
 
 public class RedisSortedSet {
 
     public record RedisSortedSetEntry(String member, Double score) {
         public static int compare(RedisSortedSetEntry e1, RedisSortedSetEntry e2) {
-            return Double.compare(e1.score(), e2.score());
+            int cmp = Comparator
+                    .comparingDouble(RedisSortedSetEntry::score)
+                    .compare(e1, e2);
+
+            if (cmp == 0) {
+                return e1.member().compareTo(e2.member());
+            }
+
+            return cmp;
         }
     }
 
@@ -23,6 +28,22 @@ public class RedisSortedSet {
         innerSet.add(entry);
         keySet.add(entry.member());
         return true;
+    }
+
+    public Optional<Integer> indexOf(String member) {
+        if (!keySet.contains(member)) {
+            return Optional.empty();
+        }
+
+        Iterator<RedisSortedSetEntry> it = new TreeSet<>(innerSet).iterator();
+        int index = 0;
+        while (it.hasNext()) {
+            if (it.next().member().equals(member)) {
+                break;
+            }
+            index++;
+        }
+        return Optional.of(index);
     }
 
 }

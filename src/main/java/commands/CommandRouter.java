@@ -23,7 +23,7 @@ public class CommandRouter {
             // Replication commands
             new InfoCommand(), new ReplConfCommand(), new PsyncCommand(), new WaitCommand(),
             // Sorted sets
-            new ZAddCommand()
+            new ZAddCommand(), new ZRankCommand()
     };
 
     /**
