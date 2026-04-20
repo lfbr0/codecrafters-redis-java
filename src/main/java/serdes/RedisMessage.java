@@ -13,16 +13,19 @@ public class RedisMessage {
     private RedisMessageType type;
     private byte[] contentBytes;
 
-    public void setContent(Object content) {
+    public RedisMessage setContent(Object content) {
         this.content = content;
+        return this;
     }
 
-    public void setType(RedisMessageType type) {
+    public RedisMessage setType(RedisMessageType type) {
         this.type = type;
+        return this;
     }
 
-    public void setContentBytes(byte[] contentBytes) {
+    public RedisMessage setContentBytes(byte[] contentBytes) {
         this.contentBytes = contentBytes;
+        return this;
     }
 
     public Object getContent() {

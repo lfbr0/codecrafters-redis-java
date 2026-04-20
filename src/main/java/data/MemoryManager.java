@@ -221,7 +221,7 @@ public class MemoryManager {
      * @param listKey the key of the list to retrieve elements from
      * @param start the starting index of the range (inclusive)
      * @param end the ending index of the range (inclusive)
-     * @return an array of RedisMessage containing the elements in the specified range, or empty list
+     * @return a list of RedisMessage containing the elements in the specified range, or empty list
      */
     public static List<RedisMessage> rangeFromList(String listKey, int start, int end) {
         ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
@@ -406,6 +406,52 @@ public class MemoryManager {
             readLock.unlock();
         }
         return Optional.empty();
+    }
+
+    /**
+     * Returns the range from like in list but for sorted set
+     * @param key sorted set key
+     * @param start start index
+     * @param end stop index
+     * @return sorted set members ranged
+     */
+    public static List<String> rangeFromSortedList(String key, int start, int end) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("sortedset[" + key + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            Logger.info("Getting sorted set from sorted sets: " + key);
+
+            RedisSortedSet set = sortedSetStore.get(key);
+            if (set == null) {
+                return List.of();
+            }
+
+            // if start or end negative, it's inverse from start
+            start = start < 0 ? set.size() + start : start;
+            end = end < 0 ? set.size() + end : end;
+
+            if (start >= set.size()) {
+                return List.of();
+            } else if (end >= set.size()) {
+                end = set.size() - 1;
+            } else if (end < start) {
+                return List.of();
+            } else if (start < 0) {
+                start = 0;
+            }
+
+            Logger.info("Getting set from sorted sets: " + key + " with start: " + start + " and end: " + end);
+            return set
+                    .subList(start, end + 1)
+                    .stream()
+                    .map(RedisSortedSet.RedisSortedSetEntry::member)
+                    .toList();
+        } finally {
+            readLock.unlock();
+        }
     }
 
     /**

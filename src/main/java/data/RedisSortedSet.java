@@ -1,5 +1,7 @@
 package data;
 
+import serdes.RedisMessage;
+
 import java.util.*;
 
 public class RedisSortedSet {
@@ -30,6 +32,10 @@ public class RedisSortedSet {
         return true;
     }
 
+    public int size() {
+        return keySet.size();
+    }
+
     public Optional<Integer> indexOf(String member) {
         if (!keySet.contains(member)) {
             return Optional.empty();
@@ -44,6 +50,12 @@ public class RedisSortedSet {
             index++;
         }
         return Optional.of(index);
+    }
+
+    public List<RedisSortedSetEntry> subList(int start, int end) {
+        return new TreeSet<>(innerSet).stream()
+                .toList()
+                .subList(start, end);
     }
 
 }
