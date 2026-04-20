@@ -41,7 +41,6 @@ public class RedisSortedSet {
      */
     public boolean add(RedisSortedSetEntry entry) {
         if (keySet.contains(entry.member())) {
-            innerSet.add(entry);
             return false;
         }
 
