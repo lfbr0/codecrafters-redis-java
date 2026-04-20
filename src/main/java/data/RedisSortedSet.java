@@ -18,17 +18,6 @@ public class RedisSortedSet {
 
             return cmp;
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (!(o instanceof RedisSortedSetEntry entry)) return false;
-            return Objects.equals(member, entry.member);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(member);
-        }
     }
 
     private final Set<String> keySet = new HashSet<>();
