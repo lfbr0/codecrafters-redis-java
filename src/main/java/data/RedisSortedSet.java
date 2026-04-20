@@ -18,15 +18,33 @@ public class RedisSortedSet {
 
             return cmp;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof RedisSortedSetEntry entry)) return false;
+            return Objects.equals(member, entry.member);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hashCode(member);
+        }
     }
 
     private final Set<String> keySet = new HashSet<>();
     private final SortedSet<RedisSortedSetEntry> innerSet = new TreeSet<>(RedisSortedSetEntry::compare);
 
+    /**
+     * Adds to sorted set
+     * @param entry entry to add
+     * @return true if added, false if it already existed and just updated
+     */
     public boolean add(RedisSortedSetEntry entry) {
         if (keySet.contains(entry.member())) {
+            innerSet.add(entry);
             return false;
         }
+
         innerSet.add(entry);
         keySet.add(entry.member());
         return true;
@@ -34,6 +52,13 @@ public class RedisSortedSet {
 
     public int size() {
         return keySet.size();
+    }
+
+    public Optional<RedisSortedSetEntry> getMember(String member) {
+        return new TreeSet<>(innerSet)
+                .stream()
+                .filter(e -> e.member().equals(member))
+                .findFirst();
     }
 
     public Optional<Integer> indexOf(String member) {

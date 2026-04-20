@@ -52,6 +52,16 @@ public class CommandResponse {
         return new CommandResponse(RedisSerializer.integer(value));
     }
 
+    public static CommandResponse bulkString(String value) {
+        return new CommandResponse(RedisSerializer.bulkString(value));
+    }
+
+    public static CommandResponse nullBulkString() {
+        return new CommandResponse(RedisSerializer.nullBulkString());
+    }
+
+
+
     public byte[] getResponseBytes() {
         return responseBytes;
     }

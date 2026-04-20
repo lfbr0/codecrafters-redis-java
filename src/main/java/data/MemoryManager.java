@@ -473,6 +473,27 @@ public class MemoryManager {
     }
 
     /**
+     * Returns member from sorted set
+     * @param key sorted set key
+     * @param member sorted set member
+     * @return member specified by key
+     */
+    public static Optional<RedisSortedSet.RedisSortedSetEntry> getMemberFromSortedSet(String key, String member) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("sortedset[" + key + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            return sortedSetStore
+                    .getOrDefault(key, new RedisSortedSet())
+                    .getMember(member);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist
