@@ -48,6 +48,10 @@ public class CommandResponse {
         return new CommandResponse(RedisSerializer.okString());
     }
 
+    public static CommandResponse integer(int value) {
+        return new CommandResponse(RedisSerializer.integer(value));
+    }
+
     public byte[] getResponseBytes() {
         return responseBytes;
     }

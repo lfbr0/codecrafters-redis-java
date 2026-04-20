@@ -455,6 +455,24 @@ public class MemoryManager {
     }
 
     /**
+     * Return length of sorted set
+     * @param key sorted set key
+     * @return sorted set size
+     */
+    public static int lengthOfSortedSet(String key) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("sortedset[" + key + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            return sortedSetStore.getOrDefault(key, new RedisSortedSet()).size();
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist
