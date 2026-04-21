@@ -30,6 +30,8 @@ public class RedisSortedSet {
      */
     public boolean add(RedisSortedSetEntry entry) {
         if (keySet.contains(entry.member())) {
+            innerSet.removeIf(e -> e.member().equals(entry.member()));
+            innerSet.add(entry);
             return false;
         }
 
