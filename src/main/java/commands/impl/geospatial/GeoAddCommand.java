@@ -3,8 +3,12 @@ package commands.impl.geospatial;
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
+import data.GeoCoordinates;
 import data.MemoryManager;
+import data.TransactionManager;
 import serdes.RedisMessage;
+
+import java.util.concurrent.Callable;
 
 public class GeoAddCommand implements Command {
 
@@ -30,14 +34,26 @@ public class GeoAddCommand implements Command {
             throw new IllegalArgumentException("GEOADD arguments should be BULK STRING!");
         }
 
-        Double longitude = Double.parseDouble(longitudeRaw.getContent().toString());
-        Double latitude = Double.parseDouble(latitudeRaw.getContent().toString());
-
+        double longitude = Double.parseDouble(longitudeRaw.getContent().toString());
+        double latitude = Double.parseDouble(latitudeRaw.getContent().toString());
         if (longitude > MAX_LON || longitude < MIN_LON || latitude > MAX_LAT || latitude < MIN_LAT) {
             throw new IllegalArgumentException(getInvalidCoordsMessage(longitude, latitude));
         }
 
-        return CommandResponse.integer(1);
+        String key = keyRaw.getContent().toString();
+        String member = memberRaw.getContent().toString();
+        Callable<CommandResponse> operation = () -> {
+            int res = MemoryManager
+                    .addToSortedSet(key, member, new GeoCoordinates(latitude, longitude).encode()) ? 1 : 0;
+            return CommandResponse.integer(res);
+        };
+
+        if (context.isInTransaction()) {
+            TransactionManager.addOperation(context.getTransactionId(), () -> operation.call().getResponseBytes());
+            return CommandResponse.queued();
+        }
+
+        return operation.call();
     }
 
     private String getInvalidCoordsMessage(Double longitude, Double latitude) {
