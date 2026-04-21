@@ -135,7 +135,13 @@ public class RedisClientHandler implements Runnable {
             ReplicationManager.replicate(message);
         }
 
-        CommandResponse commandResponse = command.execute(ctx);
+        CommandResponse commandResponse;
+        try {
+            commandResponse = command.execute(ctx);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            Logger.error("Error occured in parsing command response -> " + ex.getMessage(), ex);
+            commandResponse = CommandResponse.error(ex.getMessage());
+        }
         Logger.info("Command response: " + commandResponse);
 
         // if entered transaction mode, set flag & id

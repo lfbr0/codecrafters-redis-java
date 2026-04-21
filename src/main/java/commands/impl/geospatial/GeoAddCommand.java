@@ -7,6 +7,12 @@ import data.MemoryManager;
 import serdes.RedisMessage;
 
 public class GeoAddCommand implements Command {
+
+    private static final int MAX_LON = 180;
+    private static final int MIN_LON = -180;
+    private static final Double MAX_LAT = 85.05112878;
+    private static final Double MIN_LAT = -85.05112878;
+
     @Override
     public CommandResponse execute(CommandContext context) throws Exception {
         if (context.getArguments() == null || context.getArguments().size() != 4) {
@@ -24,7 +30,18 @@ public class GeoAddCommand implements Command {
             throw new IllegalArgumentException("GEOADD arguments should be BULK STRING!");
         }
 
+        Double longitude = Double.parseDouble(longitudeRaw.getContent().toString());
+        Double latitude = Double.parseDouble(latitudeRaw.getContent().toString());
+
+        if (longitude > MAX_LON || longitude < MIN_LON || latitude > MAX_LAT || latitude < MIN_LAT) {
+            throw new IllegalArgumentException(getInvalidCoordsMessage(longitude, latitude));
+        }
+
         return CommandResponse.integer(1);
+    }
+
+    private String getInvalidCoordsMessage(Double longitude, Double latitude) {
+        return String.format("ERR invalid longitude,latitude pair %s,s", longitude.toString(), latitude.toString());
     }
 
     @Override
