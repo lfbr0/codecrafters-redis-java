@@ -1,6 +1,17 @@
 package commands;
 
 import commands.impl.*;
+import commands.impl.geospatial.GeoAddCommand;
+import commands.impl.list.*;
+import commands.impl.replication.InfoCommand;
+import commands.impl.replication.PsyncCommand;
+import commands.impl.replication.ReplConfCommand;
+import commands.impl.replication.WaitCommand;
+import commands.impl.sortedsets.*;
+import commands.impl.transaction.DiscardCommand;
+import commands.impl.transaction.ExecCommand;
+import commands.impl.transaction.IncrCommand;
+import commands.impl.transaction.MultiCommand;
 import logger.Logger;
 
 /**
@@ -23,7 +34,9 @@ public class CommandRouter {
             // Replication commands
             new InfoCommand(), new ReplConfCommand(), new PsyncCommand(), new WaitCommand(),
             // Sorted sets
-            new ZAddCommand(), new ZRankCommand(), new ZRangeCommand(), new ZCardCommand(), new ZScoreCommand(), new ZRemCommand()
+            new ZAddCommand(), new ZRankCommand(), new ZRangeCommand(), new ZCardCommand(), new ZScoreCommand(), new ZRemCommand(),
+            // Geospatial commands
+            new GeoAddCommand()
     };
 
     /**

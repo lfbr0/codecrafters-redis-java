@@ -1,11 +1,10 @@
-package commands.impl;
+package commands.impl.replication;
 
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import logger.Logger;
 import replication.ReplicationManager;
-import serdes.RedisDeserializer;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 

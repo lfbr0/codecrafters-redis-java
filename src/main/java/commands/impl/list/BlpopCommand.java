@@ -1,4 +1,4 @@
-package commands.impl;
+package commands.impl.list;
 
 import commands.Command;
 import commands.CommandContext;

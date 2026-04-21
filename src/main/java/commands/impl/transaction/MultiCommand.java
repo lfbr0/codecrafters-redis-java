@@ -1,4 +1,4 @@
-package commands.impl;
+package commands.impl.transaction;
 
 import commands.Command;
 import commands.CommandContext;
@@ -8,21 +8,16 @@ import serdes.RedisSerializer;
 
 import java.util.UUID;
 
-public class DiscardCommand implements Command {
+public class MultiCommand implements Command {
     @Override
     public CommandResponse execute(CommandContext context) throws Exception {
-        if (!context.isInTransaction()) {
-            return new CommandResponse(RedisSerializer.error("ERR DISCARD without MULTI"));
-        }
-
-        UUID discardedTransactionId = context.endTransaction();
-        TransactionManager.abortTransaction(discardedTransactionId);
-
+        UUID transactionId = TransactionManager.startTransaction();
+        context.startTransaction(transactionId);
         return new CommandResponse(RedisSerializer.okString());
     }
 
     @Override
     public boolean matches(String commandName) {
-        return "discard".equalsIgnoreCase(commandName);
+        return "multi".equalsIgnoreCase(commandName);
     }
 }

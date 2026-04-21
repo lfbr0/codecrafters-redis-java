@@ -1,4 +1,4 @@
-package commands.impl;
+package commands.impl.replication;
 
 import commands.Command;
 import commands.CommandContext;
@@ -6,8 +6,6 @@ import commands.CommandResponse;
 import replication.ReplicationManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
-
-import java.util.concurrent.Callable;
 
 public class InfoCommand implements Command {
     @Override

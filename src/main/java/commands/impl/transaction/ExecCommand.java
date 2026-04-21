@@ -1,20 +1,14 @@
-package commands.impl;
+package commands.impl.transaction;
 
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import data.TransactionManager;
 import logger.Logger;
-import serdes.RedisDeserializer;
-import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
-import static serdes.RedisMessage.RedisMessageType.INTEGER;
 
 public class ExecCommand implements Command {
     @Override

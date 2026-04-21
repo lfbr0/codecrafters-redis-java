@@ -1,4 +1,4 @@
-package commands.impl;
+package commands.impl.replication;
 
 import commands.Command;
 import commands.CommandContext;

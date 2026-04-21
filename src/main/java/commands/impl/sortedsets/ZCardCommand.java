@@ -1,4 +1,4 @@
-package commands.impl;
+package commands.impl.sortedsets;
 
 import commands.Command;
 import commands.CommandContext;
@@ -6,10 +6,8 @@ import commands.CommandResponse;
 import data.MemoryManager;
 import data.TransactionManager;
 import serdes.RedisMessage;
-import serdes.RedisSerializer;
 
 import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 
 public class ZCardCommand implements Command {
     @Override
