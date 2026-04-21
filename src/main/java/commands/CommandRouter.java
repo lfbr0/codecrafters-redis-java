@@ -36,7 +36,7 @@ public class CommandRouter {
             // Sorted sets
             new ZAddCommand(), new ZRankCommand(), new ZRangeCommand(), new ZCardCommand(), new ZScoreCommand(), new ZRemCommand(),
             // Geospatial commands
-            new GeoAddCommand(), new GeoPosCommand()
+            new GeoAddCommand(), new GeoPosCommand(), new GeoDistCommand()
     };
 
     /**

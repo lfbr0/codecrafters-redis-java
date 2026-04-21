@@ -1,5 +1,13 @@
 package data;
 
+import static java.lang.Math.*;
+
+/**
+ * Lots of these methods were borrowed from official Redis code
+ * Example: https://github.com/redis/redis/blob/4322cebc1764d433b3fce3b3a108252648bf59e7/src/geohash_helper.c#L228C1-L228C72
+ * @param latitude
+ * @param longitude
+ */
 public record GeoCoordinates(double latitude, double longitude) {
 
     public static final double MIN_LATITUDE = -85.05112878;
@@ -10,6 +18,7 @@ public record GeoCoordinates(double latitude, double longitude) {
     // calculated ranges
     private static final double LATITUDE_RANGE = MAX_LATITUDE - MIN_LATITUDE;
     private static final double LONGITUDE_RANGE = MAX_LONGITUDE - MIN_LONGITUDE;
+    private static final double R_METERS = 6372797.560856;
 
     public long encode() {
         // Normalize to the range 0-2^26
@@ -43,6 +52,18 @@ public record GeoCoordinates(double latitude, double longitude) {
         double longitude = (gridLongitudeMin + gridLongitudeMax) / 2;
 
         return new GeoCoordinates(latitude, longitude);
+    }
+
+    // Haversine
+    public double distanceTo(GeoCoordinates gc) {
+        double lat1 = Math.toRadians(this.latitude);
+        double lat2 = Math.toRadians(gc.latitude());
+        double dLat = lat2 - lat1;
+        double dLon = Math.toRadians(gc.longitude() - this.longitude);
+
+        double a = Math.pow(Math.sin(dLat / 2), 2) + Math.pow(Math.sin(dLon / 2), 2) * Math.cos(lat1) * Math.cos(lat2);
+        double c = 2 * Math.asin(Math.sqrt(a));
+        return R_METERS * c;
     }
 
     /**
