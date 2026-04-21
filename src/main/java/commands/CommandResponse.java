@@ -60,6 +60,10 @@ public class CommandResponse {
         return new CommandResponse(RedisSerializer.nullBulkString());
     }
 
+    public static CommandResponse nullArray() {
+        return new CommandResponse(RedisSerializer.nullArray());
+    }
+
     public static CommandResponse error(String message) {
         return new CommandResponse(RedisSerializer.error(message));
     }
