@@ -51,6 +51,10 @@ public class RedisSortedSet {
                 .findFirst();
     }
 
+    public boolean removeMember(String member) {
+        return keySet.remove(member) && innerSet.removeIf(e -> e.member().equals(member));
+    }
+
     public Optional<Integer> indexOf(String member) {
         if (!keySet.contains(member)) {
             return Optional.empty();

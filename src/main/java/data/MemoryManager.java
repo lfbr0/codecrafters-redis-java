@@ -494,6 +494,27 @@ public class MemoryManager {
     }
 
     /**
+     * Removes member from Sorted Set
+     * @param key sorted set key
+     * @param member member to remove
+     * @return true if removed member from sorted set
+     */
+    public static boolean removeMemberFromSortedSet(String key, String member) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("sortedset[" + key + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            return sortedSetStore
+                    .getOrDefault(key, new RedisSortedSet())
+                    .removeMember(member);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist
