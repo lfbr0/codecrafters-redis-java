@@ -515,6 +515,26 @@ public class MemoryManager {
     }
 
     /**
+     * Returns copy of sorted set by key
+     * @param key sorted set key
+     * @return copy of sorted set
+     */
+    public static RedisSortedSet getSortedSet(String key) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("sortedset[" + key + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            return sortedSetStore
+                    .getOrDefault(key, new RedisSortedSet())
+                    .copy();
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist

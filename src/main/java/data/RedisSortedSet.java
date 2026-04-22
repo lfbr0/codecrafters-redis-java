@@ -4,7 +4,7 @@ import serdes.RedisMessage;
 
 import java.util.*;
 
-public class RedisSortedSet {
+public class RedisSortedSet extends AbstractSet<RedisSortedSet.RedisSortedSetEntry> {
 
     public record RedisSortedSetEntry(String member, Double score) {
         public static int compare(RedisSortedSetEntry e1, RedisSortedSetEntry e2) {
@@ -20,8 +20,16 @@ public class RedisSortedSet {
         }
     }
 
-    private final Set<String> keySet = new HashSet<>();
-    private final SortedSet<RedisSortedSetEntry> innerSet = new TreeSet<>(RedisSortedSetEntry::compare);
+    private Set<String> keySet = new HashSet<>();
+    private SortedSet<RedisSortedSetEntry> innerSet = new TreeSet<>(RedisSortedSetEntry::compare);
+
+
+    public RedisSortedSet copy() {
+        RedisSortedSet copy = new RedisSortedSet();
+        copy.keySet = new HashSet<>(keySet);
+        copy.innerSet = new TreeSet<>(innerSet);
+        return copy;
+    }
 
     /**
      * Adds to sorted set
@@ -38,6 +46,11 @@ public class RedisSortedSet {
         innerSet.add(entry);
         keySet.add(entry.member());
         return true;
+    }
+
+    @Override
+    public Iterator<RedisSortedSetEntry> iterator() {
+        return new TreeSet<>(innerSet).iterator();
     }
 
     public int size() {
