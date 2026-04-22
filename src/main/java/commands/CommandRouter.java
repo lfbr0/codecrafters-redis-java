@@ -2,6 +2,9 @@ package commands;
 
 import commands.impl.*;
 import commands.impl.geospatial.GeoAddCommand;
+import commands.impl.geospatial.GeoDistCommand;
+import commands.impl.geospatial.GeoPosCommand;
+import commands.impl.geospatial.GeoSearchCommand;
 import commands.impl.list.*;
 import commands.impl.replication.InfoCommand;
 import commands.impl.replication.PsyncCommand;

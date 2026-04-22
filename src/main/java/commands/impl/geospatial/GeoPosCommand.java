@@ -1,4 +1,4 @@
-package commands.impl;
+package commands.impl.geospatial;
 
 import commands.Command;
 import commands.CommandContext;
@@ -7,7 +7,6 @@ import data.GeoCoordinates;
 import data.MemoryManager;
 import data.RedisSortedSet;
 import data.TransactionManager;
-import serdes.RedisDeserializer;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
