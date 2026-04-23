@@ -1,3 +1,4 @@
+import data.PersistenceManager;
 import handler.RedisClientHandler;
 import logger.Logger;
 import replication.ReplicationManager;
@@ -26,6 +27,13 @@ public class RedisServer implements AutoCloseable {
                     serverConfiguration.getMasterPort(),
                     serverConfiguration.getPort()
             );
+        }
+
+        // if rdb file specified, read from it
+        if (serverConfiguration.getDbFilenamePath() != null) {
+            PersistenceManager
+                    .init(serverConfiguration.getDbFilenamePath())
+                    .readFromDbFile();
         }
 
         Logger.info("Redis server is listening on port {}", serverConfiguration.getPort());

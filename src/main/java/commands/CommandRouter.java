@@ -25,7 +25,7 @@ public class CommandRouter {
 
     private final static Command[] COMMANDS = {
             // Basic commands
-            new PingCommand(), new EchoCommand(),
+            new PingCommand(), new EchoCommand(), new ConfigCommand(),
             // Set & Get commands
             new SetCommand(), new GetCommand(),
             // List commands

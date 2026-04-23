@@ -1,3 +1,5 @@
+import java.nio.file.Path;
+
 public class RedisServerConfiguration {
 
     public static final int DEFAULT_PORT = 6379;
@@ -5,17 +7,31 @@ public class RedisServerConfiguration {
     private final int port;
     private final String masterHost;
     private final Integer masterPort;
+    private final String dir;
+    private final String dbFilename;
 
     public RedisServerConfiguration(int port) {
         this.port = port;
         this.masterHost = null;
         this.masterPort = null;
+        this.dir = null;
+        this.dbFilename = null;
     }
 
     public RedisServerConfiguration(int port, String masterHost, Integer masterPort) {
         this.port = port;
         this.masterHost = masterHost;
         this.masterPort = masterPort;
+        this.dir = null;
+        this.dbFilename = null;
+    }
+
+    public RedisServerConfiguration(int port, String masterHost, Integer masterPort, String dir, String dbFilename) {
+        this.port = port;
+        this.masterHost = masterHost;
+        this.masterPort = masterPort;
+        this.dir = dir;
+        this.dbFilename = dbFilename;
     }
 
     /**
@@ -40,6 +56,8 @@ public class RedisServerConfiguration {
         int port = DEFAULT_PORT;
         String masterHost = null;
         Integer masterPort = null;
+        String dir = null;
+        String dbFilename = null;
 
         for (int i = 0; i < args.length; i++) {
             // check if arg is --port
@@ -53,9 +71,17 @@ public class RedisServerConfiguration {
                 masterHost = replicaOfArgs[0];
                 masterPort = Integer.parseInt(replicaOfArgs[1]);
             }
+            // check if dir
+            if ("--dir".equalsIgnoreCase(args[i])) {
+                dir = args[++i];
+            }
+            // check if dbfilename is set
+            if ("--dbfilename".equalsIgnoreCase(args[i])) {
+                dbFilename = args[++i];
+            }
         }
 
-        return new RedisServerConfiguration(port, masterHost, masterPort);
+        return new RedisServerConfiguration(port, masterHost, masterPort, dir, dbFilename);
     }
 
     public int getPort() {
@@ -68,5 +94,12 @@ public class RedisServerConfiguration {
 
     public Integer getMasterPort() {
         return masterPort;
+    }
+
+    public Path getDbFilenamePath() {
+        if (dir == null || dbFilename == null) {
+            return null;
+        }
+        return Path.of(dir, dbFilename);
     }
 }
