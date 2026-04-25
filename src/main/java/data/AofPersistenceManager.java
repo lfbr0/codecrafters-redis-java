@@ -2,6 +2,9 @@ package data;
 
 import logger.Logger;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -14,6 +17,10 @@ public class AofPersistenceManager {
     private final String appendDir;
     private final String appendFilename;
     private final FsyncFrequency appendFsync;
+
+    // for operational use
+    private Path writeDir;
+    private File incrementalFile;
 
     public AofPersistenceManager(Path dirPath,
                                  boolean isEnabled,
@@ -36,10 +43,24 @@ public class AofPersistenceManager {
             INSTANCE = new AofPersistenceManager(dirPath, isEnabled, appendDir, appendFilename, appendFsync);
         }
 
-        Logger.info("AOF - Created append dir=" + Paths
-                .get(INSTANCE.getDir(), INSTANCE.getAppendDir()).toFile().mkdirs());
+        try {
+            INSTANCE.createBaseDirAndFiles();
+        } catch (IOException ex) {
+            Logger.error("Failed to create AOF base directory and files", ex);
+        }
 
         return INSTANCE;
+    }
+
+    private void createBaseDirAndFiles() throws IOException {
+        if (!isEnabled) return;
+        this.writeDir = Paths.get(INSTANCE.getDir(), INSTANCE.getAppendDir());
+        Logger.info("AOF - created write dir=" + writeDir.toFile().mkdirs());
+
+        this.incrementalFile = Files
+                .createFile(writeDir.resolve(appendFilename + ".1.incr.aof"))
+                .toFile();
+        Logger.info("AOF - created incremental file=" + incrementalFile.createNewFile());
     }
 
     public synchronized static AofPersistenceManager getInstance() {
