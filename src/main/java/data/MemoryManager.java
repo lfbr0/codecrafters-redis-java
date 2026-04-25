@@ -41,10 +41,12 @@ public class MemoryManager {
         set(key, value);
 
         // schedule a task to remove the key after the expiration duration
-        expiryExecutorService.schedule(() -> {
-            Logger.info("Expiring key: " + key);
-            delete(key);
-        }, expireDuration.toMillis(), TimeUnit.MILLISECONDS);
+        if (expireDuration != null) {
+            expiryExecutorService.schedule(() -> {
+                Logger.info("Expiring key: " + key);
+                delete(key);
+            }, expireDuration.toMillis(), TimeUnit.MILLISECONDS);
+        }
     }
 
     /**

@@ -27,7 +27,7 @@ public class CommandRouter {
             // Basic commands
             new PingCommand(), new EchoCommand(), new ConfigCommand(),
             // Set & Get commands
-            new SetCommand(), new GetCommand(),
+            new SetCommand(), new GetCommand(), new KeysCommand(),
             // List commands
             new RpushCommand(), new LrangeCommand(), new LpushCommand(), new LlenCommand(), new LpopCommand(), new BlpopCommand(),
             // Stream commands
