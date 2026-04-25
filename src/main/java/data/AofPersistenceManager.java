@@ -12,6 +12,7 @@ import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.nio.file.StandardOpenOption.APPEND;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
 public class AofPersistenceManager {
@@ -116,7 +117,7 @@ public class AofPersistenceManager {
      */
     private void writeToIncrementalFile(byte[] contentBytes) throws IOException {
         if (incrementalFile == null) return;
-        Files.write(incrementalFile.toPath(), contentBytes);
+        Files.write(incrementalFile.toPath(), contentBytes, APPEND);
     }
 
     /**
