@@ -1,5 +1,7 @@
 package data;
 
+import logger.Logger;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
@@ -8,7 +10,7 @@ public class AofPersistenceManager {
 
     private static AofPersistenceManager INSTANCE;
     private final Path dirPath;
-    private boolean isEnabled = false;
+    private final boolean isEnabled;
     private final String appendDir;
     private final String appendFilename;
     private final FsyncFrequency appendFsync;
@@ -33,6 +35,10 @@ public class AofPersistenceManager {
         if (INSTANCE == null) {
             INSTANCE = new AofPersistenceManager(dirPath, isEnabled, appendDir, appendFilename, appendFsync);
         }
+
+        Logger.info("AOF - Created append dir=" + Paths
+                .get(INSTANCE.getDir(), INSTANCE.getAppendDir()).toFile().mkdirs());
+
         return INSTANCE;
     }
 
