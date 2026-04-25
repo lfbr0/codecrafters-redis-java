@@ -4,6 +4,7 @@ import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import commands.CommandRouter;
+import data.AofPersistenceManager;
 import logger.Logger;
 import replication.ReplicationManager;
 import serdes.RedisDeserializer;
@@ -133,6 +134,13 @@ public class RedisClientHandler implements Runnable {
         if (command.isWriteCommand() && ReplicationManager.isMaster()) {
             Logger.info("Command " + command + " is write, so replicating message=" + message);
             ReplicationManager.replicate(message);
+        }
+
+        // aof persistence
+        if (command.isWriteCommand() && AofPersistenceManager.getInstance().isEnabled()) {
+            Logger.info("Command " + command +
+                    " is write, so persisting message=" + message +
+                    " into AOF=" + AofPersistenceManager.getInstance().persist(message));
         }
 
         CommandResponse commandResponse;

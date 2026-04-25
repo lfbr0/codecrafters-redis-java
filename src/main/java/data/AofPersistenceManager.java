@@ -1,14 +1,13 @@
 package data;
 
 import logger.Logger;
+import serdes.RedisMessage;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Optional;
 
 public class AofPersistenceManager {
 
@@ -54,6 +53,33 @@ public class AofPersistenceManager {
         return INSTANCE;
     }
 
+    /**
+     * Persists redis command message to incremental file if enabled
+     * @param redisMessage command message to persist
+     * @return true if persisted
+     */
+    public boolean persist(RedisMessage redisMessage) {
+        if (!isEnabled)
+            return false;
+
+        if (incrementalFile == null) {
+            Logger.error("AOF - Cannot persist, incremental file is null!");
+            return false;
+        }
+
+        try {
+            Files.write(incrementalFile.toPath(), redisMessage.getContentBytes());
+            return true;
+        } catch (IOException ex) {
+            Logger.error("AOF - Failed to write to incremental file", ex);
+            return false;
+        }
+    }
+
+    /**
+     * Creates the base directory and files for working this
+     * @throws IOException
+     */
     private void createBaseDirAndFiles() throws IOException {
         if (!isEnabled) return;
         this.writeDir = Paths.get(INSTANCE.getDir(), INSTANCE.getAppendDir());
