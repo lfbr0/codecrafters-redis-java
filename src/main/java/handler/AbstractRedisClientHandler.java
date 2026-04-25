@@ -65,8 +65,8 @@ public abstract class AbstractRedisClientHandler implements Runnable {
         Command command = CommandRouter.getCommand(commandName);
 
         // if in subcriber mode, cannot execute non pub/sub commands if client has subs
-        if (!command.isSubscriberModeAllowedCommand() &&
-            !PubSubManager.getInstance().getClientSubscriptions(clientUUID).isEmpty()) {
+        if (!command.isSubscriberModeAllowedCommand() && PubSubManager.getInstance().getClientSubscriptions(clientUUID) > 0) {
+            // format according to command name
             return CommandResponse.error(format(SUBSCRIBER_MODE_ERROR_FORMAT, commandName));
         }
 

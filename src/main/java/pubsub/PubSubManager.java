@@ -6,7 +6,6 @@ import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static java.util.Collections.emptySet;
 import static java.util.Collections.newSetFromMap;
 
 public class PubSubManager {
@@ -29,8 +28,8 @@ public class PubSubManager {
         return INSTANCE;
     }
 
-    public Set<String> getClientSubscriptions(UUID clientUUID) {
-        return new HashSet<>(clientToChannelsMap.getOrDefault(clientUUID, Set.of()));
+    public int getClientSubscriptions(UUID clientUUID) {
+        return clientToChannelsMap.getOrDefault(clientUUID, Set.of()).size();
     }
 
     public int registerSubscription(UUID clientUUID, OutputStream outputStream, String channel) {
