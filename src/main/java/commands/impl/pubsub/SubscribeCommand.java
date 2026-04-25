@@ -50,4 +50,9 @@ public class SubscribeCommand implements Command {
     public boolean matches(String commandName) {
         return "SUBSCRIBE".equalsIgnoreCase(commandName);
     }
+
+    @Override
+    public boolean isSubscriberModeAllowedCommand() {
+        return true;
+    }
 }

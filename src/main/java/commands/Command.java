@@ -8,4 +8,9 @@ public interface Command {
     default boolean isWriteCommand() {
         return false;
     }
+
+    // by default, command is not subscriber mode allowed
+    default boolean isSubscriberModeAllowedCommand() {
+        return false;
+    }
 }

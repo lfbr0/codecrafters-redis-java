@@ -6,6 +6,7 @@ import commands.CommandResponse;
 import commands.CommandRouter;
 import data.AofPersistenceManager;
 import logger.Logger;
+import pubsub.PubSubManager;
 import replication.ReplicationManager;
 import serdes.RedisMessage;
 
@@ -17,6 +18,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
 
 public abstract class AbstractRedisClientHandler implements Runnable {
+
+    private static final String SUBSCRIBER_MODE_ERROR = "ERR Can't execute 'echo': only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET are allowed in this context";
 
     private final UUID clientUUID = UUID.randomUUID();
     private final AtomicBoolean inTransaction = new AtomicBoolean(false);
@@ -57,6 +60,12 @@ public abstract class AbstractRedisClientHandler implements Runnable {
 
         Logger.info("Context info: " + ctx);
         Command command = CommandRouter.getCommand((String) elements.getFirst().getContent());
+
+        // if in subcriber mode, cannot execute non pub/sub commands
+        if (!command.isSubscriberModeAllowedCommand() &&
+            !PubSubManager.getInstance().getClientSubscriptions(clientUUID).isEmpty()) {
+            return CommandResponse.error(SUBSCRIBER_MODE_ERROR);
+        }
 
         // replication - if write command, replicate to slaves if master
         if (command.isWriteCommand() && ReplicationManager.isMaster()) {

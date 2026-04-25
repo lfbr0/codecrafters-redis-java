@@ -3,12 +3,10 @@ package pubsub;
 import logger.Logger;
 
 import java.io.OutputStream;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static java.util.Collections.emptySet;
 import static java.util.Collections.newSetFromMap;
 
 public class PubSubManager {
@@ -29,6 +27,10 @@ public class PubSubManager {
             INSTANCE = new PubSubManager();
         }
         return INSTANCE;
+    }
+
+    public Set<String> getClientSubscriptions(UUID clientUUID) {
+        return new HashSet<>(clientToChannelsMap.getOrDefault(clientUUID, Set.of()));
     }
 
     public int registerSubscription(UUID clientUUID, OutputStream outputStream, String channel) {
