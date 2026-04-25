@@ -77,7 +77,7 @@ public class AofPersistenceManager {
     }
 
     public enum FsyncFrequency {
-        EVERYSEC
+        EVERYSEC, ALWAYS
     }
 
 }
