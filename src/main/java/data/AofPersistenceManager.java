@@ -8,6 +8,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Queue;
+import java.util.concurrent.*;
+
+import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
 public class AofPersistenceManager {
 
@@ -19,6 +23,9 @@ public class AofPersistenceManager {
     private final FsyncFrequency appendFsync;
 
     // for operational use
+    private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(r -> new Thread(r, "aof-everysec"));
+    private final SynchronousQueue<byte[]> persistQueue = new SynchronousQueue<>();
+    private ScheduledFuture<?> persistFuture;
     private Path writeDir;
     private File incrementalFile;
     private File manifestFile;
@@ -68,12 +75,49 @@ public class AofPersistenceManager {
         }
 
         try {
-            Files.write(incrementalFile.toPath(), redisMessage.getContentBytes());
+            /**
+             * When appendfsync is set to always,
+             * the server must flush the write to disk before sending a response to the client.
+             * This guarantees that no acknowledged write can be lost,
+             * even if the server crashes immediately after responding.
+             **/
+            if (appendFsync == FsyncFrequency.ALWAYS) {
+                writeToIncrementalFile(redisMessage.getContentBytes());
+            }
+            // add to queue to be written in next second
+            else if (appendFsync == FsyncFrequency.EVERYSEC) {
+                persistQueue.offer(redisMessage.getContentBytes());
+
+                // if no future to persist it in second by second, create one now
+                if (persistFuture == null) {
+                    persistFuture = executor.scheduleAtFixedRate(() -> {
+                        try {
+                            byte[] contentBytes = persistQueue.poll();
+                            if (contentBytes != null)
+                                writeToIncrementalFile(contentBytes);
+                        } catch (IOException ex) {
+                            Logger.error("AOF - Failed to write to incremental file", ex);
+                        }
+                    }, 1, 1, TimeUnit.SECONDS);
+                }
+            }
+
+            // return true as default
             return true;
         } catch (IOException ex) {
             Logger.error("AOF - Failed to write to incremental file", ex);
             return false;
         }
+    }
+
+    /**
+     * Writes to incremental file if it isn't null
+     * @param contentBytes bytes to write
+     * @throws IOException
+     */
+    private void writeToIncrementalFile(byte[] contentBytes) throws IOException {
+        if (incrementalFile == null) return;
+        Files.write(incrementalFile.toPath(), contentBytes);
     }
 
     /**
