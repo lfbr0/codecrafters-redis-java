@@ -1,5 +1,6 @@
 package data;
 
+import handler.AofRedisClientHandler;
 import logger.Logger;
 import serdes.RedisMessage;
 
@@ -8,9 +9,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Queue;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
@@ -60,6 +63,35 @@ public class AofPersistenceManager {
         }
 
         return INSTANCE;
+    }
+
+    /**
+     * Replay commands from AOF file by finding incremental files,
+     * reading first incremental & passing it on to AofRedisClientHandler to process its contents
+     */
+    public void replayFromAofFile() throws IOException {
+        if (!isEnabled)
+            return;
+
+        if (manifestFile == null) {
+            Logger.error("AOF - cannot replay from AOF file since manifest is null!");
+            return;
+        }
+
+        Pattern aofRegexPattern = Pattern.compile("file (.*) seq \\d type i");
+
+        Logger.info("AOF - Reading incremental files from manifest=" + manifestFile.getAbsolutePath());
+        List<Path> incrementalFilePaths = Files.lines(manifestFile.toPath())
+                .map(aofRegexPattern::matcher)
+                .filter(Matcher::matches)
+                .map(matcher -> matcher.group(1))
+                .map(filename -> Paths.get(writeDir.toFile().getAbsolutePath(), filename))
+                .toList();
+
+        Logger.info("AOF - Replay incremental file paths: " + incrementalFilePaths);
+        incrementalFilePaths.forEach(incrementalFilePath ->
+                new AofRedisClientHandler(incrementalFilePath.toFile()).run()
+        );
     }
 
     /**
@@ -126,19 +158,30 @@ public class AofPersistenceManager {
      */
     private void createBaseDirAndFiles() throws IOException {
         if (!isEnabled) return;
-        this.writeDir = Paths.get(INSTANCE.getDir(), INSTANCE.getAppendDir());
-        Logger.info("AOF - created write dir=" + writeDir.toFile().mkdirs());
+
+        this.writeDir = Paths.get(getDir(), getAppendDir());
+        writeDir.toFile().mkdirs();
+
+        Path manifestPath = writeDir.resolve(appendFilename + ".manifest");
+
+        // reuse existing setup
+        if (Files.exists(manifestPath)) {
+            this.manifestFile = manifestPath.toFile();
+            this.incrementalFile = null;
+            Logger.info("AOF - Using existing manifest=" + manifestFile.getName());
+            return;
+        }
 
         this.incrementalFile = Files
                 .createFile(writeDir.resolve(appendFilename + ".1.incr.aof"))
                 .toFile();
-        Logger.info("AOF - created incremental file=" + incrementalFile.createNewFile());
 
         String manifestContent = String.format("file %s seq 1 type i", incrementalFile.getName());
         this.manifestFile = Files
-                .writeString(writeDir.resolve(appendFilename + ".manifest"), manifestContent)
+                .writeString(manifestPath, manifestContent)
                 .toFile();
-        Logger.info("AOF - wrote manifest file to=" + manifestFile.getName());
+
+        Logger.info("AOF - New AOF setup. Manifest=" + manifestFile + " incremental file=" + incrementalFile);
     }
 
     public synchronized static AofPersistenceManager getInstance() {

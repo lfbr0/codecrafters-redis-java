@@ -47,7 +47,8 @@ public class RedisServer implements AutoCloseable {
                             serverConfiguration.getAppendDirName(),
                             serverConfiguration.getAppendFilename(),
                             serverConfiguration.getAppendFSync()
-                    );
+                    )
+                    .replayFromAofFile();
         }
 
         Logger.info("Redis server is listening on port {}", serverConfiguration.getPort());
