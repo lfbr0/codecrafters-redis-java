@@ -27,12 +27,12 @@ public class SubscribeCommand implements Command {
 
         final String channel = channelRaw.getContent().toString();
         Callable<CommandResponse> operation = () -> {
-            PubSubManager.getInstance().registerSubscription(context.getClientUUID(), context.getOutputStream(), channel);
-            int subscribedChannels = context.subscribeToChannel(channel);
+            int subscribedChannelsByClient = PubSubManager.getInstance()
+                    .registerSubscription(context.getClientUUID(), context.getOutputStream(), channel);
 
             RedisMessage msg1 = new RedisMessage().setType(BULK_STRING).setContent("subscribe");
             RedisMessage msg2 = new RedisMessage().setType(BULK_STRING).setContent(channel);
-            RedisMessage msg3 = new RedisMessage().setType(INTEGER).setContent(subscribedChannels);
+            RedisMessage msg3 = new RedisMessage().setType(INTEGER).setContent(subscribedChannelsByClient);
 
             RedisMessage subMsg = new RedisMessage().setType(ARRAY).setContent(List.of(msg1, msg2, msg3));
             return new CommandResponse(RedisSerializer.serialize(subMsg));
