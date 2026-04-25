@@ -9,19 +9,19 @@ public class AofPersistenceManager {
     private static AofPersistenceManager INSTANCE;
     private final Path dirPath;
     private boolean isEnabled = false;
-    private String appendDir = "appendonlydir";
-    private String appendFilename = "appendonly.aof";
-    private FsyncFrequency appendFsync = FsyncFrequency.EVERYSEC;
+    private final String appendDir;
+    private final String appendFilename;
+    private final FsyncFrequency appendFsync;
 
     public AofPersistenceManager(Path dirPath,
                                  boolean isEnabled,
                                  String appendDir,
                                  String appendFilename,
                                  FsyncFrequency appendFsync) {
-        this.dirPath = dirPath;
+        this.dirPath = dirPath != null ? dirPath : Paths.get("./").toAbsolutePath().normalize();
         this.isEnabled = isEnabled;
-        this.appendDir = appendDir;
-        this.appendFilename = appendFilename;
+        this.appendDir = appendDir != null ? appendDir : "appendonlydir";
+        this.appendFilename = appendFilename != null ? appendFilename : "appendonly.aof";
         this.appendFsync = appendFsync != null ? appendFsync : FsyncFrequency.EVERYSEC;
     }
 
