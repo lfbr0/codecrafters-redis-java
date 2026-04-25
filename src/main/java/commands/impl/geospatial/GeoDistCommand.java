@@ -3,7 +3,6 @@ package commands.impl.geospatial;
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
-import data.GeoCoordinates;
 import data.MemoryManager;
 import data.TransactionManager;
 import serdes.RedisMessage;

@@ -1,4 +1,4 @@
-import data.PersistenceManager;
+import data.RdbPersistenceManager;
 import handler.RedisClientHandler;
 import logger.Logger;
 import replication.ReplicationManager;
@@ -31,7 +31,7 @@ public class RedisServer implements AutoCloseable {
 
         // if rdb file specified, read from it
         if (serverConfiguration.getDbFilenamePath() != null) {
-            PersistenceManager
+            RdbPersistenceManager
                     .init(serverConfiguration.getDbFilenamePath())
                     .readFromDbFile();
         }

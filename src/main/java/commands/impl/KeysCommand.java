@@ -3,7 +3,7 @@ package commands.impl;
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
-import data.PersistenceManager;
+import data.RdbPersistenceManager;
 import data.TransactionManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
@@ -26,7 +26,7 @@ public class KeysCommand implements Command {
         String filter = filterRaw.getContent().toString();
         Callable<CommandResponse> operation = () -> {
             String filterAsRegex = filter.replace("*", ".*");
-            List<String> matchingKeys = PersistenceManager.getInstance()
+            List<String> matchingKeys = RdbPersistenceManager.getInstance()
                     .orElseThrow(() -> new IllegalArgumentException("KEYS cannot be performed since Persistence Manager is null!"))
                     .getPersistedKeys()
                     .stream()

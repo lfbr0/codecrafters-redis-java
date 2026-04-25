@@ -1,6 +1,4 @@
-package data;
-
-import static java.lang.Math.*;
+package commands.impl.geospatial;
 
 /**
  * Lots of these methods were borrowed from official Redis code

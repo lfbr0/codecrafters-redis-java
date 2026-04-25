@@ -14,37 +14,37 @@ import java.util.concurrent.TimeUnit;
 
 import static java.lang.Integer.parseInt;
 
-public class PersistenceManager {
+public class RdbPersistenceManager {
 
-    private static PersistenceManager INSTANCE;
-    private final Path dbFilenamePath;
+    private static RdbPersistenceManager INSTANCE;
+    private final Path dirPath;
 
     // for state mgmt
     private final List<String> persistedKeys = new LinkedList<>();
 
 
-    public PersistenceManager(Path dbFilenamePath) {
-        this.dbFilenamePath = dbFilenamePath;
+    public RdbPersistenceManager(Path dirPath) {
+        this.dirPath = dirPath;
     }
 
-    public static synchronized PersistenceManager init(Path dbFilenamePath) {
+    public static synchronized RdbPersistenceManager init(Path dbFilenamePath) {
         if (INSTANCE == null) {
-            INSTANCE = new PersistenceManager(dbFilenamePath);
+            INSTANCE = new RdbPersistenceManager(dbFilenamePath);
         }
         return INSTANCE;
     }
 
-    public synchronized static Optional<PersistenceManager> getInstance() {
+    public synchronized static Optional<RdbPersistenceManager> getInstance() {
         return Optional.ofNullable(INSTANCE);
     }
 
 
-    public String getDbFileDir() {
-        return dbFilenamePath.toFile().getParent();
+    public String getDir() {
+        return dirPath.toFile().getParent();
     }
 
     public String getDbFilename() {
-        return dbFilenamePath.toFile().getName();
+        return dirPath.toFile().getName();
     }
 
     public List<String> getPersistedKeys() {
@@ -56,12 +56,12 @@ public class PersistenceManager {
      * Link: https://rdb.fnordig.de/file_format.html
      */
     public void readFromDbFile() {
-        if (dbFilenamePath == null) {
+        if (dirPath == null) {
             Logger.error("Persistence Manager - will not continue, Database path is null");
             return;
         }
 
-        File dbFile = dbFilenamePath.toFile();
+        File dbFile = dirPath.toFile();
         if (!dbFile.exists()) {
             Logger.error("Persistence Manager - will not continue, Database path does not exist");
             return;

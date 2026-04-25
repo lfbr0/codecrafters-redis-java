@@ -1,5 +1,6 @@
 package data;
 
+import commands.impl.sortedsets.RedisSortedSet;
 import logger.Logger;
 import serdes.RedisMessage;
 
