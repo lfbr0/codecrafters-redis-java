@@ -67,6 +67,9 @@ public class PersistenceManager {
             return;
         }
 
+        // runnables to insert into db
+        List<Runnable> memoryInserts = new LinkedList<>();
+
         try (FileInputStream fis = new FileInputStream(dbFile)) {
             // start by reading header and asserting it is what is expected
             byte[] header = fis.readNBytes(5);
@@ -90,7 +93,7 @@ public class PersistenceManager {
                 // DB selector
                 else if (b == 0xFE) {
                     int dbSelectorIdx = readLengthEncodedInt(fis);
-                    interpretDatabaseSelector(dbSelectorIdx, new LinkedList<>(), fis);
+                    interpretDatabaseSelector(dbSelectorIdx, memoryInserts, fis);
                 }
 
                 // EOF
@@ -98,9 +101,12 @@ public class PersistenceManager {
                     break;
                 }
             }
-
+            // end-while file reading
         } catch (Exception e) {
             Logger.error("Persistence Manager - will not continue, Error reading from file " + e);
+        } finally {
+            // insert all things into memory
+            memoryInserts.forEach(Runnable::run);
         }
     }
 
