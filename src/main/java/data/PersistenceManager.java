@@ -161,20 +161,20 @@ public class PersistenceManager {
     }
 
     private void interpretKeyValue(FileInputStream fis, List<Runnable> inserts, TimeUnit timeUnit) {
-        Duration expiry = null;
+        Long expireAtMillis = null;
 
         try {
             // FC $unsigned long
             if (timeUnit == TimeUnit.MILLISECONDS) {
-                expiry = Duration.ofMillis(readUInt64(fis));
+                expireAtMillis = readUInt64LittleEndian(fis);
             }
             // FD $unsigned-int
             else if (timeUnit == TimeUnit.SECONDS) {
-                expiry = Duration.ofSeconds(readUInt32(fis));
+                expireAtMillis = readUInt32LittleEndian(fis) * 1000L;
             }
 
             int valueType = readByte(fis);
-            interpretKeyValueWithKnownType(fis, inserts, expiry, valueType);
+            interpretKeyValueWithKnownType(fis, inserts, expireAtMillis, valueType);
 
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -183,7 +183,7 @@ public class PersistenceManager {
 
     private void interpretKeyValueWithKnownType(FileInputStream fis,
                                                 List<Runnable> inserts,
-                                                Duration expiry, // #nullable
+                                                Long expireAtMillis, // #nullable
                                                 int valueType) throws IOException {
         String key;
         String value;
@@ -194,6 +194,15 @@ public class PersistenceManager {
 
         key = readString(fis);
         value = readString(fis);
+
+        if (expireAtMillis != null && System.currentTimeMillis() >= expireAtMillis) {
+            Logger.info("Persistence Manager - skipping expired KV -> key=" + key + ", value=" + value + ", expireAtMillis=" + expireAtMillis);
+            return;
+        }
+
+        final Duration expiry = expireAtMillis != null ?
+                Duration.ofMillis(expireAtMillis - System.currentTimeMillis()) : null;
+
         RedisMessage valueAsRedisMessage = new RedisMessage()
                 .setType(RedisMessage.RedisMessageType.BULK_STRING)
                 .setContent(value);
@@ -242,16 +251,12 @@ public class PersistenceManager {
     }
 
     private int readLengthFromFirstByte(FileInputStream fis, int firstByte, int type) throws IOException {
-        switch (type) {
-            case 0b00:
-                return firstByte & 0b00111111;
-            case 0b01:
-                return ((firstByte & 0b00111111) << 8) | readByte(fis);
-            case 0b10:
-                return readUInt32(fis);
-            default:
-                throw new IOException("Invalid encoding");
-        }
+        return switch (type) {
+            case 0b00 -> firstByte & 0b00111111;
+            case 0b01 -> ((firstByte & 0b00111111) << 8) | readByte(fis);
+            case 0b10 -> readUInt32(fis);
+            default -> throw new IOException("Invalid encoding");
+        };
     }
 
     private int readLengthEncodedInt(FileInputStream fis) throws IOException {
@@ -311,14 +316,32 @@ public class PersistenceManager {
                 | readByte(fis);
     }
 
-    private long readUInt64(FileInputStream fis) throws IOException {
-        return ((long) readByte(fis) << 56)
-                | ((long) readByte(fis) << 48)
-                | ((long) readByte(fis) << 40)
-                | ((long) readByte(fis) << 32)
-                | ((long) readByte(fis) << 24)
-                | ((long) readByte(fis) << 16)
-                | ((long) readByte(fis) << 8)
-                | readByte(fis);
+    private long readUInt32LittleEndian(FileInputStream fis) throws IOException {
+        long b1 = readByte(fis);
+        long b2 = readByte(fis);
+        long b3 = readByte(fis);
+        long b4 = readByte(fis);
+
+        return b1 | (b2 << 8) | (b3 << 16) | (b4 << 24);
+    }
+
+    private long readUInt64LittleEndian(FileInputStream fis) throws IOException {
+        long b1 = readByte(fis);
+        long b2 = readByte(fis);
+        long b3 = readByte(fis);
+        long b4 = readByte(fis);
+        long b5 = readByte(fis);
+        long b6 = readByte(fis);
+        long b7 = readByte(fis);
+        long b8 = readByte(fis);
+
+        return b1
+                | (b2 << 8)
+                | (b3 << 16)
+                | (b4 << 24)
+                | (b5 << 32)
+                | (b6 << 40)
+                | (b7 << 48)
+                | (b8 << 56);
     }
 }
