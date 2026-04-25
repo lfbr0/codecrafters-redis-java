@@ -1,3 +1,4 @@
+import data.AofPersistenceManager;
 import data.RdbPersistenceManager;
 import handler.RedisClientHandler;
 import logger.Logger;
@@ -6,6 +7,7 @@ import replication.ReplicationManager;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 
 import static java.util.concurrent.Executors.newCachedThreadPool;
@@ -30,10 +32,22 @@ public class RedisServer implements AutoCloseable {
         }
 
         // if rdb file specified, read from it
-        if (serverConfiguration.getDbFilenamePath() != null) {
+        if (serverConfiguration.getRdbFilenamePath() != null) {
             RdbPersistenceManager
-                    .init(serverConfiguration.getDbFilenamePath())
+                    .init(serverConfiguration.getRdbFilenamePath())
                     .readFromDbFile();
+        }
+
+        // if aof enabled, init
+        if (serverConfiguration.isAppendOnlyEnabled()) {
+            AofPersistenceManager
+                    .init(
+                            Path.of(serverConfiguration.getDir()),
+                            true,
+                            serverConfiguration.getAppendDirName(),
+                            serverConfiguration.getAppendFilename(),
+                            serverConfiguration.getAppendFSync()
+                    );
         }
 
         Logger.info("Redis server is listening on port {}", serverConfiguration.getPort());

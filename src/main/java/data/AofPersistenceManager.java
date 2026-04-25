@@ -13,21 +13,33 @@ public class AofPersistenceManager {
     private String appendFilename = "appendonly.aof";
     private FsyncFrequency appendFsync = FsyncFrequency.EVERYSEC;
 
-    public AofPersistenceManager(Path dirPath, boolean isEnabled) {
+    public AofPersistenceManager(Path dirPath,
+                                 boolean isEnabled,
+                                 String appendDir,
+                                 String appendFilename,
+                                 FsyncFrequency appendFsync) {
         this.dirPath = dirPath;
         this.isEnabled = isEnabled;
+        this.appendDir = appendDir;
+        this.appendFilename = appendFilename;
+        this.appendFsync = appendFsync != null ? appendFsync : FsyncFrequency.EVERYSEC;
     }
 
-    public static synchronized AofPersistenceManager init(Path dbFilenamePath, boolean isEnabled) {
+    public static synchronized AofPersistenceManager init(Path dirPath,
+                                                          boolean isEnabled,
+                                                          String appendDir,
+                                                          String appendFilename,
+                                                          FsyncFrequency appendFsync) {
         if (INSTANCE == null) {
-            INSTANCE = new AofPersistenceManager(dbFilenamePath, isEnabled);
+            INSTANCE = new AofPersistenceManager(dirPath, isEnabled, appendDir, appendFilename, appendFsync);
         }
         return INSTANCE;
     }
 
     public synchronized static AofPersistenceManager getInstance() {
         if (INSTANCE == null) {
-            return init(Paths.get("./"), false); // if not initialized, not enabled - dummy instance
+            return init(Paths.get("./"), false,
+                    null, null, null); // if not initialized, not enabled - dummy instance
         }
         return INSTANCE;
     }
