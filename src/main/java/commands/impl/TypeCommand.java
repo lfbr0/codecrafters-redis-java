@@ -12,27 +12,22 @@ import java.util.concurrent.Callable;
 
 public class TypeCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().isEmpty()) {
-            throw new IllegalArgumentException("Missing key argument for TYPE command");
-        }
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().isEmpty()) {
+                throw new IllegalArgumentException("Missing key argument for TYPE command");
+            }
 
-        RedisMessage keyRaw = context.getArguments().getFirst();
-        if (keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-            throw new IllegalArgumentException("Expected a bulk string for key argument, but got: " + keyRaw.getType());
-        }
+            RedisMessage keyRaw = context.getArguments().getFirst();
+            if (keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                throw new IllegalArgumentException("Expected a bulk string for key argument, but got: " + keyRaw.getType());
+            }
 
-        String key = (String) keyRaw.getContent();
+            String key = (String) keyRaw.getContent();
+            String type = MemoryManager.type(key);
 
-        String type = MemoryManager.type(key);
-
-        Callable<byte[]> task = () -> RedisSerializer.simpleString(type == null ? "none" : type);
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), task);
-            return CommandResponse.queued();
-        } else {
-            return new CommandResponse(task.call());
-        }
+            return new CommandResponse(RedisSerializer.simpleString(type == null ? "none" : type));
+        };
     }
 
     @Override

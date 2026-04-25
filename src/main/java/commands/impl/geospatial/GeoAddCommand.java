@@ -17,42 +17,35 @@ public class GeoAddCommand implements Command {
     private static final Double MIN_LAT = -85.05112878;
 
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().size() != 4) {
-            throw new IllegalArgumentException("GEOADD expects exactly 4 arguments!");
-        }
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().size() != 4) {
+                throw new IllegalArgumentException("GEOADD expects exactly 4 arguments!");
+            }
 
-        RedisMessage keyRaw = context.getArguments().getFirst();
-        RedisMessage longitudeRaw = context.getArguments().get(1);
-        RedisMessage latitudeRaw = context.getArguments().get(2);
-        RedisMessage memberRaw = context.getArguments().getLast();
-        if (keyRaw.getType() != longitudeRaw.getType() ||
-            longitudeRaw.getType() != latitudeRaw.getType() ||
-            latitudeRaw.getType() != memberRaw.getType() ||
-            memberRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-            throw new IllegalArgumentException("GEOADD arguments should be BULK STRING!");
-        }
+            RedisMessage keyRaw = context.getArguments().getFirst();
+            RedisMessage longitudeRaw = context.getArguments().get(1);
+            RedisMessage latitudeRaw = context.getArguments().get(2);
+            RedisMessage memberRaw = context.getArguments().getLast();
+            if (keyRaw.getType() != longitudeRaw.getType() ||
+                    longitudeRaw.getType() != latitudeRaw.getType() ||
+                    latitudeRaw.getType() != memberRaw.getType() ||
+                    memberRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                throw new IllegalArgumentException("GEOADD arguments should be BULK STRING!");
+            }
 
-        double longitude = Double.parseDouble(longitudeRaw.getContent().toString());
-        double latitude = Double.parseDouble(latitudeRaw.getContent().toString());
-        if (longitude > MAX_LON || longitude < MIN_LON || latitude > MAX_LAT || latitude < MIN_LAT) {
-            throw new IllegalArgumentException(getInvalidCoordsMessage(longitude, latitude));
-        }
+            double longitude = Double.parseDouble(longitudeRaw.getContent().toString());
+            double latitude = Double.parseDouble(latitudeRaw.getContent().toString());
+            if (longitude > MAX_LON || longitude < MIN_LON || latitude > MAX_LAT || latitude < MIN_LAT) {
+                throw new IllegalArgumentException(getInvalidCoordsMessage(longitude, latitude));
+            }
 
-        String key = keyRaw.getContent().toString();
-        String member = memberRaw.getContent().toString();
-        Callable<CommandResponse> operation = () -> {
+            String key = keyRaw.getContent().toString();
+            String member = memberRaw.getContent().toString();
             int res = MemoryManager
                     .addToSortedSet(key, member, new GeoCoordinates(latitude, longitude).encode()) ? 1 : 0;
             return CommandResponse.integer(res);
         };
-
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), () -> operation.call().getResponseBytes());
-            return CommandResponse.queued();
-        }
-
-        return operation.call();
     }
 
     private String getInvalidCoordsMessage(Double longitude, Double latitude) {

@@ -9,35 +9,33 @@ import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
 public class BlpopCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().size() < 2) {
-            throw new IllegalArgumentException("BLPOP command requires at least 2 arguments: key and timeout");
-        }
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().size() < 2) {
+                throw new IllegalArgumentException("BLPOP command requires at least 2 arguments: key and timeout");
+            }
 
-        RedisMessage keyRaw = context.getArguments().get(0);
-        RedisMessage timeoutRaw = context.getArguments().get(1);
-        if (keyRaw.getType() != timeoutRaw.getType() && keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-            throw new IllegalArgumentException("BLPOP command arguments must be bulk strings");
-        }
+            RedisMessage keyRaw = context.getArguments().get(0);
+            RedisMessage timeoutRaw = context.getArguments().get(1);
+            if (keyRaw.getType() != timeoutRaw.getType() && keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                throw new IllegalArgumentException("BLPOP command arguments must be bulk strings");
+            }
 
-        String key = (String) keyRaw.getContent();
-        float timeout = Float.parseFloat((String) timeoutRaw.getContent());
-        if (timeout == 0) {
-            timeout = Float.MAX_VALUE; // block indefinitely
-        }
-        long timeoutMillis = (long) (timeout * 1000);
+            String key = (String) keyRaw.getContent();
+            float timeout = Float.parseFloat((String) timeoutRaw.getContent());
+            if (timeout == 0) {
+                timeout = Float.MAX_VALUE; // block indefinitely
+            }
+            long timeoutMillis = (long) (timeout * 1000);
 
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), () -> performBlockingPop(key, timeoutMillis));
-            return CommandResponse.queued();
-        } else {
             return new CommandResponse(performBlockingPop(key, timeoutMillis));
-        }
+        };
     }
 
     private byte[] performBlockingPop(String key, long timeoutMillis) throws InterruptedException {

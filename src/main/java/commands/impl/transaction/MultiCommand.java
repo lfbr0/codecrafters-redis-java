@@ -7,13 +7,21 @@ import data.TransactionManager;
 import serdes.RedisSerializer;
 
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 public class MultiCommand implements Command {
     @Override
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            UUID transactionId = TransactionManager.startTransaction();
+            context.startTransaction(transactionId);
+            return new CommandResponse(RedisSerializer.okString());
+        };
+    }
+
+    @Override
     public CommandResponse execute(CommandContext context) throws Exception {
-        UUID transactionId = TransactionManager.startTransaction();
-        context.startTransaction(transactionId);
-        return new CommandResponse(RedisSerializer.okString());
+        return handleContext(context).call();
     }
 
     @Override

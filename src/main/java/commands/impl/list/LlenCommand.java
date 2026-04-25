@@ -12,26 +12,21 @@ import java.util.concurrent.Callable;
 
 public class LlenCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().isEmpty()) {
-            throw new IllegalArgumentException("LLEN command requires a key argument");
-        }
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().isEmpty()) {
+                throw new IllegalArgumentException("LLEN command requires a key argument");
+            }
 
-        RedisMessage rawKey = context.getArguments().getFirst();
-        if (rawKey == null || rawKey.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-            throw new IllegalArgumentException("LLEN command requires a bulk string key argument");
-        }
+            RedisMessage rawKey = context.getArguments().getFirst();
+            if (rawKey == null || rawKey.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                throw new IllegalArgumentException("LLEN command requires a bulk string key argument");
+            }
 
-        String key = (String) rawKey.getContent();
+            String key = (String) rawKey.getContent();
 
-        Callable<byte[]> task = () -> RedisSerializer.integer(MemoryManager.lengthOfList(key));
-
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), task);
-            return CommandResponse.queued();
-        } else {
-            return new CommandResponse(task.call());
-        }
+            return new CommandResponse(RedisSerializer.integer(MemoryManager.lengthOfList(key)));
+        };
     }
 
     @Override

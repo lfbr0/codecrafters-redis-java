@@ -16,21 +16,21 @@ import java.util.concurrent.Callable;
 
 public class GeoPosCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().size() < 2) {
-            throw new IllegalArgumentException("GEOPOS expects at least 2 arguments (key, member)!");
-        }
-
-        RedisMessage keyRaw = context.getArguments().getFirst();
-        for (int i = 1; i < context.getArguments().size(); i++) {
-            RedisMessage memberRaw = context.getArguments().get(i);
-            if (keyRaw.getType() != memberRaw.getType() || keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-                throw new IllegalArgumentException("GEOPOS arguments must be BULK STRING!");
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().size() < 2) {
+                throw new IllegalArgumentException("GEOPOS expects at least 2 arguments (key, member)!");
             }
-        }
 
-        String key = keyRaw.getContent().toString();
-        Callable<CommandResponse> operation = () -> {
+            RedisMessage keyRaw = context.getArguments().getFirst();
+            for (int i = 1; i < context.getArguments().size(); i++) {
+                RedisMessage memberRaw = context.getArguments().get(i);
+                if (keyRaw.getType() != memberRaw.getType() || keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                    throw new IllegalArgumentException("GEOPOS arguments must be BULK STRING!");
+                }
+            }
+
+            String key = keyRaw.getContent().toString();
             List<RedisMessage> resultArray = new ArrayList<>(context.getArguments().size() - 1);
 
             for (int i = 1; i < context.getArguments().size(); i++) {
@@ -67,13 +67,6 @@ public class GeoPosCommand implements Command {
             wrapperArray.setContent(resultArray);
             return new CommandResponse(RedisSerializer.serialize(wrapperArray));
         };
-
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), () -> operation.call().getResponseBytes());
-            return CommandResponse.queued();
-        }
-
-        return operation.call();
     }
 
     @Override

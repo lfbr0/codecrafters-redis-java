@@ -14,31 +14,24 @@ import java.util.concurrent.Callable;
 
 public class SetCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().size() < 2) {
-            throw new IllegalArgumentException("SET command requires at least 2 arguments: key and value");
-        }
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().size() < 2) {
+                throw new IllegalArgumentException("SET command requires at least 2 arguments: key and value");
+            }
 
-        RedisMessage keyRaw = context.getArguments().getFirst();
-        if (keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-            throw new IllegalArgumentException("SET command requires the key to be a bulk string");
-        }
+            RedisMessage keyRaw = context.getArguments().getFirst();
+            if (keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                throw new IllegalArgumentException("SET command requires the key to be a bulk string");
+            }
 
-        Callable<byte[]> task = () -> {
             setInMemory(
                     (String) keyRaw.getContent(),
                     context.getArguments().get(1),
                     context
             );
-            return RedisSerializer.okString();
+            return new CommandResponse(RedisSerializer.okString());
         };
-
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), task);
-            return CommandResponse.queued();
-        }
-
-        return new CommandResponse(task.call());
     }
 
     private void setInMemory(String key, RedisMessage value, CommandContext context) throws Exception {

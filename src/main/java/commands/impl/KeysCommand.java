@@ -13,18 +13,18 @@ import java.util.concurrent.Callable;
 
 public class KeysCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().size() != 1) {
-            throw new IllegalArgumentException("KEYS expects one argument with filter!");
-        }
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().size() != 1) {
+                throw new IllegalArgumentException("KEYS expects one argument with filter!");
+            }
 
-        RedisMessage filterRaw = context.getArguments().getFirst();
-        if (filterRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-            throw new IllegalArgumentException("KEYS expects filter to be a bulk string!");
-        }
+            RedisMessage filterRaw = context.getArguments().getFirst();
+            if (filterRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                throw new IllegalArgumentException("KEYS expects filter to be a bulk string!");
+            }
 
-        String filter = filterRaw.getContent().toString();
-        Callable<CommandResponse> operation = () -> {
+            String filter = filterRaw.getContent().toString();
             String filterAsRegex = filter.replace("*", ".*");
             List<String> matchingKeys = RdbPersistenceManager.getInstance()
                     .orElseThrow(() -> new IllegalArgumentException("KEYS cannot be performed since Persistence Manager is null!"))
@@ -35,13 +35,6 @@ public class KeysCommand implements Command {
 
             return new CommandResponse(RedisSerializer.listStrings(matchingKeys));
         };
-
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), () -> operation.call().getResponseBytes());
-            return CommandResponse.queued();
-        }
-
-        return operation.call();
     }
 
     @Override

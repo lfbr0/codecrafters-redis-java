@@ -1,6 +1,8 @@
 package pubsub;
 
 import logger.Logger;
+import serdes.RedisMessage;
+import serdes.RedisSerializer;
 
 import java.io.OutputStream;
 import java.util.*;
@@ -50,6 +52,32 @@ public class PubSubManager {
         });
 
         return subbedChannels.size();
+    }
+
+    public int publish(String channel, String message) {
+        Set<RedisSubscription> subscriptions = channelToClientsMap.getOrDefault(channel, Set.of());
+        if (subscriptions.isEmpty()) {
+            return 0;
+        }
+
+        RedisMessage msg1 = new RedisMessage().setType(RedisMessage.RedisMessageType.BULK_STRING).setContent("message");
+        RedisMessage msg2 = new RedisMessage().setType(RedisMessage.RedisMessageType.BULK_STRING).setContent(channel);
+        RedisMessage msg3 = new RedisMessage().setType(RedisMessage.RedisMessageType.BULK_STRING).setContent(message);
+        RedisMessage pubMsg = new RedisMessage().setType(RedisMessage.RedisMessageType.ARRAY).setContent(List.of(msg1, msg2, msg3));
+
+        byte[] serializedMsg = RedisSerializer.serialize(pubMsg);
+
+        int count = 0;
+        for (RedisSubscription sub : subscriptions) {
+            try {
+                sub.outputStream().write(serializedMsg);
+                sub.outputStream().flush();
+                count++;
+            } catch (Exception e) {
+                Logger.error("Failed to publish message to client " + sub.uuid() + ": " + e.getMessage());
+            }
+        }
+        return count;
     }
 
 }

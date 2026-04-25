@@ -14,33 +14,26 @@ import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
 
 public class IncrCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().size() != 1) {
-            throw new IllegalArgumentException("INCR command requires exactly 1 argument");
-        }
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().size() != 1) {
+                throw new IllegalArgumentException("INCR command requires exactly 1 argument");
+            }
 
-        RedisMessage keyRaw = context.getArguments().getFirst();
-        if (keyRaw.getType() != BULK_STRING) {
-            throw new IllegalArgumentException("INCR command requires a bulk string argument");
-        }
+            RedisMessage keyRaw = context.getArguments().getFirst();
+            if (keyRaw.getType() != BULK_STRING) {
+                throw new IllegalArgumentException("INCR command requires a bulk string argument");
+            }
 
-        String key = (String) keyRaw.getContent();
+            String key = (String) keyRaw.getContent();
 
-        Callable<byte[]> operation = () -> {
             try {
                 int result = MemoryManager.increment(key);
-                return RedisSerializer.integer(result);
+                return new CommandResponse(RedisSerializer.integer(result));
             } catch (IllegalArgumentException e) {
-                return RedisSerializer.error(e.getMessage());
+                return new CommandResponse(RedisSerializer.error(e.getMessage()));
             }
         };
-
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), operation);
-            return CommandResponse.queued();
-        } else {
-            return new CommandResponse(operation.call());
-        }
     }
 
 

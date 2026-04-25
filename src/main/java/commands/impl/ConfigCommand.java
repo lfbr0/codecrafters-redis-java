@@ -11,10 +11,12 @@ import serdes.RedisSerializer;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Callable;
 
 public class ConfigCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
         if (context.getArguments() == null || context.getArguments().size() < 2) {
             throw new IllegalArgumentException("CONFIG expects at least two arguments!");
         }
@@ -84,6 +86,7 @@ public class ConfigCommand implements Command {
         }
 
         throw new IllegalArgumentException("CONFIG did not receive valid arguments!");
+        };
     }
 
     @Override

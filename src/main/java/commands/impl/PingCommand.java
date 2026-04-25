@@ -13,21 +13,14 @@ import java.util.concurrent.Callable;
 
 public class PingCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        Callable<byte[]> task = () -> {
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
             if (PubSubManager.getInstance().getClientSubscriptions(context.getClientUUID()) > 0) {
-                return RedisSerializer.listStrings(List.of("pong", ""));
+                return new CommandResponse(RedisSerializer.listStrings(List.of("pong", "")));
             } else {
-                return RedisSerializer.simpleString("PONG");
+                return new CommandResponse(RedisSerializer.simpleString("PONG"));
             }
         };
-
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), task);
-            return CommandResponse.queued();
-        }
-
-        return new CommandResponse(task.call());
     }
 
     @Override

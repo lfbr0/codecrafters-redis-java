@@ -8,26 +8,24 @@ import data.TransactionManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
+import java.util.concurrent.Callable;
+
 public class GetCommand implements Command {
     @Override
-    public CommandResponse execute(CommandContext context) throws Exception {
-        if (context.getArguments() == null || context.getArguments().isEmpty()) {
-            throw new IllegalArgumentException("GET command requires at least 1 argument: key");
-        }
+    public Callable<CommandResponse> handleContext(CommandContext context) {
+        return () -> {
+            if (context.getArguments() == null || context.getArguments().isEmpty()) {
+                throw new IllegalArgumentException("GET command requires at least 1 argument: key");
+            }
 
-        RedisMessage rawKey = context.getArguments().getFirst();
-        if (rawKey.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-            throw new IllegalArgumentException("GET command requires the key to be a bulk string");
-        }
+            RedisMessage rawKey = context.getArguments().getFirst();
+            if (rawKey.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                throw new IllegalArgumentException("GET command requires the key to be a bulk string");
+            }
 
-        String key = (String) rawKey.getContent();
-
-        if (context.isInTransaction()) {
-            TransactionManager.addOperation(context.getTransactionId(), () -> get(key));
-            return CommandResponse.queued();
-        } else {
+            String key = (String) rawKey.getContent();
             return new CommandResponse(get(key));
-        }
+        };
     }
 
     private byte[] get(String key) {
