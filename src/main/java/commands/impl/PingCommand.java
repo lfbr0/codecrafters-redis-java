@@ -16,7 +16,7 @@ public class PingCommand implements Command {
     public CommandResponse execute(CommandContext context) throws Exception {
         Callable<byte[]> task = () -> {
             if (PubSubManager.getInstance().getClientSubscriptions(context.getClientUUID()) > 0) {
-                return RedisSerializer.listStrings(List.of("PONG", ""));
+                return RedisSerializer.listStrings(List.of("pong", ""));
             } else {
                 return RedisSerializer.simpleString("PONG");
             }
