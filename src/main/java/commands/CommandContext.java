@@ -3,10 +3,7 @@ package commands;
 import serdes.RedisMessage;
 
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class CommandContext {
 
@@ -17,7 +14,7 @@ public class CommandContext {
     // state vars
     private boolean isInTransaction = false;
     private UUID transactionId;
-    private final List<String> subscribedChannels = Collections.synchronizedList(new ArrayList<>());
+    private final Set<String> subscribedChannels = Collections.synchronizedSet(new HashSet<>());
 
     public CommandContext(UUID clientUUID, OutputStream outputStream, List<RedisMessage> arguments) {
         this.clientUUID = clientUUID;
