@@ -31,9 +31,7 @@ public class ConfigCommand implements Command {
             // dir field
             if ("dir".equalsIgnoreCase(fieldToGet)) {
                 String dbFileDir = RdbPersistenceManager.getInstance().map(RdbPersistenceManager::getDir)
-                        .or(() -> AofPersistenceManager.getInstance().map(AofPersistenceManager::getDir))
-                        // neither RDB nor AOF, so return current working dir
-                        .orElse(Paths.get("./").toAbsolutePath().normalize().toString());
+                        .orElse(AofPersistenceManager.getInstance().getDir());
 
                 byte[] msgBytes = RedisSerializer.listStrings(List.of("dir", dbFileDir));
                 return new CommandResponse(msgBytes);
@@ -50,11 +48,7 @@ public class ConfigCommand implements Command {
             }
             // appendonly - aof active field
             if ("appendonly".equalsIgnoreCase(fieldToGet)) {
-                boolean appendOnly = AofPersistenceManager
-                        .getInstance()
-                        .map(AofPersistenceManager::isEnabled)
-                        .orElse(false);
-
+                boolean appendOnly = AofPersistenceManager.getInstance().isEnabled();
                 byte[] msgBytes = RedisSerializer.listStrings(List.of("appendonly", appendOnly ? "yes" : "no"));
                 return new CommandResponse(msgBytes);
             }
@@ -62,7 +56,6 @@ public class ConfigCommand implements Command {
             if ("appenddirname".equalsIgnoreCase(fieldToGet)) {
                 String appendDir = AofPersistenceManager
                         .getInstance()
-                        .orElseThrow(() -> new IllegalArgumentException("GET appenddirname cannot be performed, no AOF persistence manager!"))
                         .getAppendDir();
 
                 byte[] msgBytes = RedisSerializer.listStrings(List.of("appenddirname", appendDir));
@@ -72,7 +65,6 @@ public class ConfigCommand implements Command {
             if ("appendfilename".equalsIgnoreCase(fieldToGet)) {
                 String appendFilename = AofPersistenceManager
                         .getInstance()
-                        .orElseThrow(() -> new IllegalArgumentException("GET appendfilename cannot be performed, no AOF persistence manager!"))
                         .getAppendFilename();
 
                 byte[] msgBytes = RedisSerializer.listStrings(List.of("appendfilename", appendFilename));
@@ -82,7 +74,6 @@ public class ConfigCommand implements Command {
             if ("appendfsync".equalsIgnoreCase(fieldToGet)) {
                 String appendFSync = AofPersistenceManager
                         .getInstance()
-                        .orElseThrow(() -> new IllegalArgumentException("GET appendfsync cannot be performed, no AOF persistence manager!"))
                         .getAppendFSync()
                         .name()
                         .toLowerCase(Locale.ROOT);

@@ -1,6 +1,7 @@
 package data;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Optional;
 
 public class AofPersistenceManager {
@@ -12,20 +13,23 @@ public class AofPersistenceManager {
     private String appendFilename = "appendonly.aof";
     private FsyncFrequency appendFsync = FsyncFrequency.EVERYSEC;
 
-    public AofPersistenceManager(Path dirPath) {
+    public AofPersistenceManager(Path dirPath, boolean isEnabled) {
         this.dirPath = dirPath;
-        this.isEnabled = true;
+        this.isEnabled = isEnabled;
     }
 
-    public static synchronized AofPersistenceManager init(Path dbFilenamePath) {
+    public static synchronized AofPersistenceManager init(Path dbFilenamePath, boolean isEnabled) {
         if (INSTANCE == null) {
-            INSTANCE = new AofPersistenceManager(dbFilenamePath);
+            INSTANCE = new AofPersistenceManager(dbFilenamePath, isEnabled);
         }
         return INSTANCE;
     }
 
-    public synchronized static Optional<AofPersistenceManager> getInstance() {
-        return Optional.ofNullable(INSTANCE);
+    public synchronized static AofPersistenceManager getInstance() {
+        if (INSTANCE == null) {
+            return init(Paths.get("./"), false); // if not initialized, not enabled - dummy instance
+        }
+        return INSTANCE;
     }
 
     public boolean isEnabled() {
@@ -33,7 +37,7 @@ public class AofPersistenceManager {
     }
 
     public String getDir() {
-        return dirPath.toFile().getAbsolutePath();
+        return dirPath.normalize().toFile().getAbsolutePath();
     }
 
     /**
