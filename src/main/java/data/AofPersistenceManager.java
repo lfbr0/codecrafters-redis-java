@@ -4,6 +4,7 @@ import logger.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,6 +22,7 @@ public class AofPersistenceManager {
     // for operational use
     private Path writeDir;
     private File incrementalFile;
+    private File manifestFile;
 
     public AofPersistenceManager(Path dirPath,
                                  boolean isEnabled,
@@ -61,6 +63,12 @@ public class AofPersistenceManager {
                 .createFile(writeDir.resolve(appendFilename + ".1.incr.aof"))
                 .toFile();
         Logger.info("AOF - created incremental file=" + incrementalFile.createNewFile());
+
+        String manifestContent = String.format("file %s seq 1 type i", incrementalFile.getName());
+        this.manifestFile = Files
+                .writeString(writeDir.resolve(appendFilename + ".manifest"), manifestContent)
+                .toFile();
+        Logger.info("AOF - wrote manifest file to=" + manifestFile.getName());
     }
 
     public synchronized static AofPersistenceManager getInstance() {
