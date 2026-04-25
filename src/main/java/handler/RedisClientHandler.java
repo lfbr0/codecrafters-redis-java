@@ -10,6 +10,7 @@ import replication.ReplicationManager;
 import serdes.RedisDeserializer;
 import serdes.RedisMessage;
 
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.List;
 import java.util.UUID;
@@ -37,6 +38,10 @@ public class RedisClientHandler extends AbstractRedisClientHandler {
     public void run() {
         try {
             Logger.info("Starting RedisClientHandler for " + socket.getRemoteSocketAddress());
+
+            // has to be concurrent because of pub/sub feature
+            OutputStream outputStream = new ConcurrentOutputStream(socket.getOutputStream());
+
             while (socket.isConnected()) {
                 RedisMessage message = RedisDeserializer.deserialize(socket.getInputStream());
                 if (message == null) {
@@ -50,7 +55,7 @@ public class RedisClientHandler extends AbstractRedisClientHandler {
                     continue;
                 }
 
-                CommandResponse commandResponse = handleMessage(message, socket.getOutputStream());
+                CommandResponse commandResponse = handleMessage(message, outputStream);
                 boolean sendCommandResponse = true;
                 // reply to client if we have response and WE SHOULD RESPOND
                 // if slave client, then no need to send response - we're joing doing our master's bidding
@@ -69,12 +74,12 @@ public class RedisClientHandler extends AbstractRedisClientHandler {
                 if (sendCommandResponse) {
                     // write to client response
                     Logger.info("Sending response to client: " + socket.getRemoteSocketAddress() + " - " + commandResponse);
-                    socket.getOutputStream().write(commandResponse.getResponseBytes());
+                    outputStream.write(commandResponse.getResponseBytes());
 
                     // execute post response callback - if it exists
                     CommandResponse.CommandPostResponseCallback postRespCb = commandResponse.getPostResponseCallback();
                     if (postRespCb != null) {
-                        postRespCb.postResponse(socket.getOutputStream());
+                        postRespCb.postResponse(outputStream);
                     }
                 }
 

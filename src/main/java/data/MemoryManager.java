@@ -325,7 +325,7 @@ public class MemoryManager {
     }
 
     /**
-     * Pop from list to longest waiting subscriber, if any.
+     * Pop from list to the longest waiting subscriber, if any.
      * This method is called after every push to the list
      * to ensure that waiting subscribers are notified as soon as possible.
      * @param listKey the key of the list to pop from and notify subscribers about

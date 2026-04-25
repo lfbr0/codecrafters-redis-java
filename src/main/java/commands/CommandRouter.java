@@ -6,6 +6,7 @@ import commands.impl.geospatial.GeoDistCommand;
 import commands.impl.geospatial.GeoPosCommand;
 import commands.impl.geospatial.GeoSearchCommand;
 import commands.impl.list.*;
+import commands.impl.pubsub.SubscribeCommand;
 import commands.impl.replication.InfoCommand;
 import commands.impl.replication.PsyncCommand;
 import commands.impl.replication.ReplConfCommand;
@@ -39,7 +40,9 @@ public class CommandRouter {
             // Sorted sets
             new ZAddCommand(), new ZRankCommand(), new ZRangeCommand(), new ZCardCommand(), new ZScoreCommand(), new ZRemCommand(),
             // Geospatial commands
-            new GeoAddCommand(), new GeoPosCommand(), new GeoDistCommand(), new GeoSearchCommand()
+            new GeoAddCommand(), new GeoPosCommand(), new GeoDistCommand(), new GeoSearchCommand(),
+            // Pub/Sub commands
+            new SubscribeCommand()
     };
 
     /**
