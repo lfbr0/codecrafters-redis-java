@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Queue;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 
@@ -25,7 +26,7 @@ public class AofPersistenceManager {
     // for operational use
     private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor(r -> new Thread(r, "aof-everysec"));
     private final SynchronousQueue<byte[]> persistQueue = new SynchronousQueue<>();
-    private ScheduledFuture<?> persistFuture;
+    private final AtomicReference<ScheduledFuture<?>> persistFutureRef = new AtomicReference<>(null);
     private Path writeDir;
     private File incrementalFile;
     private File manifestFile;
@@ -88,18 +89,16 @@ public class AofPersistenceManager {
             else if (appendFsync == FsyncFrequency.EVERYSEC) {
                 persistQueue.offer(redisMessage.getContentBytes());
 
-                // if no future to persist it in second by second, create one now
-                if (persistFuture == null) {
-                    persistFuture = executor.scheduleAtFixedRate(() -> {
-                        try {
-                            byte[] contentBytes = persistQueue.poll();
-                            if (contentBytes != null)
-                                writeToIncrementalFile(contentBytes);
-                        } catch (IOException ex) {
-                            Logger.error("AOF - Failed to write to incremental file", ex);
-                        }
-                    }, 1, 1, TimeUnit.SECONDS);
-                }
+                // if no future to persist it in second by second, create one now - do so atomically
+                persistFutureRef.compareAndSet(null, executor.scheduleAtFixedRate(() -> {
+                    try {
+                        byte[] contentBytes = persistQueue.poll();
+                        if (contentBytes != null)
+                            writeToIncrementalFile(contentBytes);
+                    } catch (IOException ex) {
+                        Logger.error("AOF - Failed to write to incremental file", ex);
+                    }
+                }, 1, 1, TimeUnit.SECONDS));
             }
 
             // return true as default
