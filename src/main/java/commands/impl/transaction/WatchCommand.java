@@ -11,7 +11,7 @@ public class WatchCommand implements Command {
     @Override
     public CommandResponse execute(CommandContext context) throws Exception {
         if (context.isInTransaction()) {
-            return null;
+            return CommandResponse.error("ERR WATCH inside MULTI is not allowed");
         }
         return handleContext(context).call();
     }
