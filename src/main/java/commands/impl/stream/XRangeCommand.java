@@ -94,6 +94,6 @@ public class XRangeCommand implements Command {
 
     @Override
     public boolean matches(String commandName) {
-        return false;
+        return "XRANGE".equalsIgnoreCase(commandName);
     }
 }
