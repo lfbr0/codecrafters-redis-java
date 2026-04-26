@@ -1,4 +1,4 @@
-package commands.impl.sortedsets;
+package commands.impl.sortedset;
 
 import java.util.*;
 

@@ -13,9 +13,12 @@ import commands.impl.replication.InfoCommand;
 import commands.impl.replication.PsyncCommand;
 import commands.impl.replication.ReplConfCommand;
 import commands.impl.replication.WaitCommand;
-import commands.impl.sortedsets.*;
+import commands.impl.sortedset.*;
+import commands.impl.stream.XAddCommand;
 import commands.impl.transaction.*;
 import logger.Logger;
+
+import java.util.stream.Stream;
 
 /**
  * CommandRouter is responsible for routing incoming command names to their corresponding Command implementations.
@@ -41,7 +44,9 @@ public class CommandRouter {
             // Geospatial commands
             new GeoAddCommand(), new GeoPosCommand(), new GeoDistCommand(), new GeoSearchCommand(),
             // Pub/Sub commands
-            new SubscribeCommand(), new PublishCommand(), new UnsubscribeCommand()
+            new SubscribeCommand(), new PublishCommand(), new UnsubscribeCommand(),
+            // Stream commands
+            new XAddCommand()
     };
 
     /**

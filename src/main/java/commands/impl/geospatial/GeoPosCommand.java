@@ -4,8 +4,7 @@ import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import data.MemoryManager;
-import commands.impl.sortedsets.RedisSortedSet;
-import data.TransactionManager;
+import commands.impl.sortedset.RedisSortedSet;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 

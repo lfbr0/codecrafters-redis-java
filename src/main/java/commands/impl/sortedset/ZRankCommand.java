@@ -1,10 +1,9 @@
-package commands.impl.sortedsets;
+package commands.impl.sortedset;
 
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import data.MemoryManager;
-import data.TransactionManager;
 import serdes.RedisMessage;
 import serdes.RedisSerializer;
 

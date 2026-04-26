@@ -1,6 +1,7 @@
 package data;
 
-import commands.impl.sortedsets.RedisSortedSet;
+import commands.impl.sortedset.RedisSortedSet;
+import commands.impl.stream.StreamEntry;
 import logger.Logger;
 import serdes.RedisMessage;
 
@@ -27,9 +28,11 @@ public class MemoryManager {
     private static final Map<String, List<RedisMessage>> listStore = new ConcurrentHashMap<>();
     // For lists subscription
     private static final Map<String, Queue<SynchronousQueue<RedisMessage>>> listPopSubs = new ConcurrentHashMap<>();
-
     // For sorted sets
     private static final Map<String, RedisSortedSet> sortedSetStore = new ConcurrentHashMap<>();
+    // For streams
+    private static final Map<String, List<StreamEntry>> streamStore = new ConcurrentHashMap<>();
+
 
     /**
      * Sets the value for the given key in the memory store with an expiration duration.
@@ -551,6 +554,36 @@ public class MemoryManager {
     }
 
     /**
+     * Adds entry to stream
+     *
+     * @param streamKey   stream key
+     * @param streamEntry stream entry
+     * @return
+     */
+    public static boolean addToStream(String streamKey, StreamEntry streamEntry) {
+        ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
+                .getLock("stream[" + streamKey + "]")
+                .writeLock();
+        boolean appended = false;
+
+        try {
+            writeLock.lock();
+
+            appended = streamStore
+                    .computeIfAbsent(streamKey, key -> new ArrayList<>())
+                    .add(streamEntry);
+
+            TransactionManager.notifyKeyModified(streamKey);
+        } catch (Exception ex) {
+            Logger.error(format("Error appending to stream[%s] entry[%s]\n", streamKey, streamEntry), ex);
+        } finally {
+            writeLock.unlock();
+        }
+
+        return appended;
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist
@@ -563,6 +596,8 @@ public class MemoryManager {
             return "list";
         } else if (sortedSetStore.containsKey(key)) {
             return "sortedset";
+        } else if (streamStore.containsKey(key)) {
+            return "stream";
         } else {
             return null;
         }
