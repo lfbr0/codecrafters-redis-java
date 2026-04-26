@@ -33,7 +33,7 @@ public class CommandRouter {
             // Stream commands
             new TypeCommand(),
             // Transaction commands
-            new IncrCommand(), new MultiCommand(), new ExecCommand(), new DiscardCommand(), new WatchCommand()
+            new IncrCommand(), new MultiCommand(), new ExecCommand(), new DiscardCommand(), new WatchCommand(),
             // Replication commands
             new InfoCommand(), new ReplConfCommand(), new PsyncCommand(), new WaitCommand(),
             // Sorted sets
