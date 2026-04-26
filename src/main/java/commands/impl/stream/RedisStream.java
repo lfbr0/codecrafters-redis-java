@@ -29,7 +29,12 @@ public class RedisStream extends AbstractList<StreamEntry> {
         }
         // must generate everything
         if (newEntryId.matches("\\*")) {
-            // TODO
+            String entryTs = Long.toString(System.currentTimeMillis());
+            long seqId = findNextAvailableSequenceIdByTimestamp(entryTs);
+            newEntryId = entryTs + "-" + seqId;
+
+            StreamEntry updatedNewEntry = new StreamEntry(newEntry.getStreamKey(), newEntryId);
+            return add(updatedNewEntry) ? Optional.of(newEntryId) : Optional.empty();
         }
 
         // no case for this situation
