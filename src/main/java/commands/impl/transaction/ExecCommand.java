@@ -25,7 +25,7 @@ public class ExecCommand implements Command {
             if (TransactionManager.isTransactionAborted(context.getClientUUID())) {
                 TransactionManager.abortTransaction(transactionId);
                 TransactionManager.clearWatchedKeys(context.getClientUUID());
-                return new CommandResponse(RedisSerializer.nullBulkString());
+                return new CommandResponse(RedisSerializer.nullArray());
             }
 
             // execute all transactions
