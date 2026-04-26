@@ -9,15 +9,13 @@ public class TransactionManager {
     private TransactionManager() {}
 
     private final static Map<UUID, List<Callable<byte[]>>> transactionToOperations = new ConcurrentHashMap<>();
-    private final static Map<UUID, UUID> transactionToClientMap = new ConcurrentHashMap<>();
     private final static Map<UUID, Set<String>> clientToWatchedKeys = new ConcurrentHashMap<>();
     private final static Map<String, Long> keyModCount = new ConcurrentHashMap<>();
     private final static Set<UUID> dirtyClients = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    public static UUID startTransaction(UUID clientUUID) {
+    public static UUID startTransaction() {
         UUID transactionUUID = UUID.randomUUID();
         transactionToOperations.put(transactionUUID, new LinkedList<>());
-        transactionToClientMap.put(transactionUUID, clientUUID);
         return transactionUUID;
     }
 
