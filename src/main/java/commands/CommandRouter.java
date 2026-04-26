@@ -8,6 +8,7 @@ import commands.impl.geospatial.GeoSearchCommand;
 import commands.impl.list.*;
 import commands.impl.pubsub.PublishCommand;
 import commands.impl.pubsub.SubscribeCommand;
+import commands.impl.pubsub.UnsubscribeCommand;
 import commands.impl.replication.InfoCommand;
 import commands.impl.replication.PsyncCommand;
 import commands.impl.replication.ReplConfCommand;
@@ -43,7 +44,7 @@ public class CommandRouter {
             // Geospatial commands
             new GeoAddCommand(), new GeoPosCommand(), new GeoDistCommand(), new GeoSearchCommand(),
             // Pub/Sub commands
-            new SubscribeCommand(), new PublishCommand()
+            new SubscribeCommand(), new PublishCommand(), new UnsubscribeCommand()
     };
 
     /**

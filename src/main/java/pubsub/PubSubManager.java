@@ -34,7 +34,7 @@ public class PubSubManager {
         return clientToChannelsMap.getOrDefault(clientUUID, Set.of()).size();
     }
 
-    public int registerSubscription(UUID clientUUID, OutputStream outputStream, String channel) {
+    public int subscribe(UUID clientUUID, OutputStream outputStream, String channel) {
         Logger.info("PubSub - registering client " + clientUUID + " subscription to channel " + channel);
 
         // add sub to client map
@@ -48,6 +48,26 @@ public class PubSubManager {
         channelToClientsMap.compute(channel, (key, existingSet) -> {
             Set<RedisSubscription> set = (existingSet == null) ? newSetFromMap(new ConcurrentHashMap<>()) : existingSet;
             set.add(new RedisSubscription(clientUUID, channel, outputStream));
+            return set;
+        });
+
+        return subbedChannels.size();
+    }
+
+    public int unsubscribe(UUID clientUUID, String channel) {
+        Logger.info("PubSub - unsubscribing client " + clientUUID + " from channel " + channel);
+
+        // remove sub from client map
+        Set<String> subbedChannels = clientToChannelsMap.compute(clientUUID, (key, existingSet) -> {
+            Set<String> set = (existingSet == null) ? newSetFromMap(new ConcurrentHashMap<>()) : existingSet;
+            set.remove(channel);
+            return set;
+        });
+
+        // add sub to subs map
+        channelToClientsMap.compute(channel, (key, existingSet) -> {
+            Set<RedisSubscription> set = (existingSet == null) ? newSetFromMap(new ConcurrentHashMap<>()) : existingSet;
+            set.removeIf(sub -> sub.uuid().equals(clientUUID));
             return set;
         });
 

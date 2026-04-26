@@ -12,7 +12,7 @@ import java.util.concurrent.Callable;
 
 import static serdes.RedisMessage.RedisMessageType.*;
 
-public class SubscribeCommand implements Command {
+public class UnsubscribeCommand implements Command {
     @Override
     public Callable<CommandResponse> handleContext(CommandContext context) {
         return () -> {
@@ -28,9 +28,9 @@ public class SubscribeCommand implements Command {
             final String channel = channelRaw.getContent().toString();
 
             int subscribedChannelsByClient = PubSubManager.getInstance()
-                    .subscribe(context.getClientUUID(), context.getOutputStream(), channel);
+                    .unsubscribe(context.getClientUUID(), channel);
 
-            RedisMessage msg1 = new RedisMessage().setType(BULK_STRING).setContent("subscribe");
+            RedisMessage msg1 = new RedisMessage().setType(BULK_STRING).setContent("unsubscribe");
             RedisMessage msg2 = new RedisMessage().setType(BULK_STRING).setContent(channel);
             RedisMessage msg3 = new RedisMessage().setType(INTEGER).setContent(subscribedChannelsByClient);
 
@@ -41,7 +41,7 @@ public class SubscribeCommand implements Command {
 
     @Override
     public boolean matches(String commandName) {
-        return "SUBSCRIBE".equalsIgnoreCase(commandName);
+        return "UNSUBSCRIBE".equalsIgnoreCase(commandName);
     }
 
     @Override
