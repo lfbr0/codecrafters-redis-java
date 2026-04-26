@@ -3,7 +3,9 @@ package commands.impl.transaction;
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
+import data.TransactionManager;
 import serdes.RedisMessage;
+import serdes.RedisSerializer;
 
 import java.util.concurrent.Callable;
 
@@ -19,17 +21,20 @@ public class WatchCommand implements Command {
     @Override
     public Callable<CommandResponse> handleContext(CommandContext context) {
         return () -> {
-            if (context.getArguments() == null || context.getArguments().size() != 1) {
-                throw new IllegalArgumentException("WATCH expects exactly 1 argument!");
+            if (context.getArguments() == null || context.getArguments().isEmpty()) {
+                throw new IllegalArgumentException("WATCH expects at least 1 argument!");
             }
 
-            RedisMessage keyRaw = context.getArguments().getFirst();
-            if (keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
-                throw new IllegalArgumentException("WATCH expects argument to be BULK STRING!");
+            for (RedisMessage keyRaw : context.getArguments()) {
+                if (keyRaw.getType() != RedisMessage.RedisMessageType.BULK_STRING) {
+                    throw new IllegalArgumentException("WATCH expects arguments to be BULK STRING!");
+                }
+
+                String key = keyRaw.getContent().toString();
+                TransactionManager.watchKey(key, context.getClientUUID());
             }
 
-            String key = keyRaw.getContent().toString();
-            return CommandResponse.ok();
+            return new CommandResponse(RedisSerializer.okString());
         };
     }
 

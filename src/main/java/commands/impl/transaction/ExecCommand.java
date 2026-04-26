@@ -22,8 +22,15 @@ public class ExecCommand implements Command {
             Logger.info("Exiting transaction mode " + context.getTransactionId());
             UUID transactionId = context.endTransaction();
 
+            if (TransactionManager.isTransactionAborted(context.getClientUUID())) {
+                TransactionManager.abortTransaction(transactionId);
+                TransactionManager.clearWatchedKeys(context.getClientUUID());
+                return new CommandResponse(RedisSerializer.nullBulkString());
+            }
+
             // execute all transactions
             List<byte[]> messagesRaw = TransactionManager.commitTransaction(transactionId);
+            TransactionManager.clearWatchedKeys(context.getClientUUID());
             return new CommandResponse(RedisSerializer.listRaw(messagesRaw));
         };
     }

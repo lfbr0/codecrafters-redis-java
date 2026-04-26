@@ -1,7 +1,5 @@
 package data;
 
-import serdes.RedisMessage;
-
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,11 +9,16 @@ public class TransactionManager {
     private TransactionManager() {}
 
     private final static Map<UUID, List<Callable<byte[]>>> transactionToOperations = new ConcurrentHashMap<>();
+    private final static Map<UUID, UUID> transactionToClientMap = new ConcurrentHashMap<>();
+    private final static Map<UUID, Set<String>> clientToWatchedKeys = new ConcurrentHashMap<>();
+    private final static Map<String, Long> keyModCount = new ConcurrentHashMap<>();
+    private final static Set<UUID> dirtyClients = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    public static UUID startTransaction() {
-        UUID uuid = UUID.randomUUID();
-        transactionToOperations.put(uuid, new LinkedList<>());
-        return uuid;
+    public static UUID startTransaction(UUID clientUUID) {
+        UUID transactionUUID = UUID.randomUUID();
+        transactionToOperations.put(transactionUUID, new LinkedList<>());
+        transactionToClientMap.put(transactionUUID, clientUUID);
+        return transactionUUID;
     }
 
     public static void abortTransaction(UUID discardedTransactionId) {
@@ -46,6 +49,32 @@ public class TransactionManager {
                     }
                 })
                 .toList();
+    }
+
+    public static void watchKey(String key, UUID clientUUID) {
+        clientToWatchedKeys.compute(clientUUID, (uuid, previousWatchedKeys) -> {
+            Set<String> watchedKeys = (previousWatchedKeys == null) ? new HashSet<>() : previousWatchedKeys;
+            watchedKeys.add(key);
+            return watchedKeys;
+        });
+    }
+
+    public static void notifyKeyModified(String key) {
+        keyModCount.compute(key, (k, v) -> (v == null) ? 1L : v + 1);
+        clientToWatchedKeys.forEach((clientUUID, watchedKeys) -> {
+            if (watchedKeys.contains(key)) {
+                dirtyClients.add(clientUUID);
+            }
+        });
+    }
+
+    public static boolean isTransactionAborted(UUID clientUUID) {
+        return dirtyClients.contains(clientUUID);
+    }
+
+    public static void clearWatchedKeys(UUID clientUUID) {
+        clientToWatchedKeys.remove(clientUUID);
+        dirtyClients.remove(clientUUID);
     }
 
 }

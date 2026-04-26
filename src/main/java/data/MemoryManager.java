@@ -64,6 +64,7 @@ public class MemoryManager {
             writeLock.lock();
             Logger.info("Setting key: " + key + " to value: " + value);
             keyValueStore.put(key, value);
+            TransactionManager.notifyKeyModified(key);
         } finally {
             writeLock.unlock();
         }
@@ -82,6 +83,7 @@ public class MemoryManager {
             writeLock.lock();
             Logger.info("Deleting key: " + key);
             keyValueStore.remove(key);
+            TransactionManager.notifyKeyModified(key);
             // fix memory leak for lock factory
             KeyLockFactory.removeLock("data[" + key + "]");
         } finally {
@@ -161,6 +163,7 @@ public class MemoryManager {
             newValue.setContent(nextValue);
 
             keyValueStore.put(key, newValue);
+            TransactionManager.notifyKeyModified(key);
             return nextValue;
         } finally {
             writeLock.unlock();
@@ -186,6 +189,7 @@ public class MemoryManager {
             List<RedisMessage> list = listStore
                     .computeIfAbsent(listKey, k -> new CopyOnWriteArrayList<>());
             list.addAll(Arrays.asList(values));
+            TransactionManager.notifyKeyModified(listKey);
             return list.size();
         } finally {
             writeLock.unlock();
@@ -212,6 +216,7 @@ public class MemoryManager {
             for (RedisMessage value : values) {
                 list.addFirst(value);
             }
+            TransactionManager.notifyKeyModified(listKey);
             return list.size();
         } finally {
             writeLock.unlock();
@@ -306,6 +311,7 @@ public class MemoryManager {
             while (popCount-- > 0) {
                 result.add(list.removeFirst());
             }
+            TransactionManager.notifyKeyModified(key);
             return result;
         } finally {
             readLock.unlock();
@@ -376,6 +382,9 @@ public class MemoryManager {
             appended = sortedSetStore
                     .computeIfAbsent(zSetKey, key -> new RedisSortedSet())
                     .add(new RedisSortedSet.RedisSortedSetEntry(zSetMember, zSetScore));
+            if (appended) {
+                TransactionManager.notifyKeyModified(zSetKey);
+            }
         } catch (Exception ex) {
             Logger.error(format("Error appending to set[%s] member[%s] rank[%f]\n", zSetKey, zSetMember, zSetScore), ex);
         } finally {
@@ -503,17 +512,21 @@ public class MemoryManager {
      * @return true if removed member from sorted set
      */
     public static boolean removeMemberFromSortedSet(String key, String member) {
-        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+        ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
                 .getLock("sortedset[" + key + "]")
-                .readLock();
+                .writeLock();
 
         try {
-            readLock.lock();
-            return sortedSetStore
+            writeLock.lock();
+            boolean removed = sortedSetStore
                     .getOrDefault(key, new RedisSortedSet())
                     .removeMember(member);
+            if (removed) {
+                TransactionManager.notifyKeyModified(key);
+            }
+            return removed;
         } finally {
-            readLock.unlock();
+            writeLock.unlock();
         }
     }
 

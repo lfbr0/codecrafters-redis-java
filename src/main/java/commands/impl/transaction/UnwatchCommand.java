@@ -6,21 +6,13 @@ import commands.CommandResponse;
 import data.TransactionManager;
 import serdes.RedisSerializer;
 
-import java.util.UUID;
 import java.util.concurrent.Callable;
 
-public class DiscardCommand implements Command {
+public class UnwatchCommand implements Command {
     @Override
     public Callable<CommandResponse> handleContext(CommandContext context) {
         return () -> {
-            if (!context.isInTransaction()) {
-                return new CommandResponse(RedisSerializer.error("ERR DISCARD without MULTI"));
-            }
-
-            UUID discardedTransactionId = context.endTransaction();
-            TransactionManager.abortTransaction(discardedTransactionId);
             TransactionManager.clearWatchedKeys(context.getClientUUID());
-
             return new CommandResponse(RedisSerializer.okString());
         };
     }
@@ -32,6 +24,6 @@ public class DiscardCommand implements Command {
 
     @Override
     public boolean matches(String commandName) {
-        return "discard".equalsIgnoreCase(commandName);
+        return "unwatch".equalsIgnoreCase(commandName);
     }
 }

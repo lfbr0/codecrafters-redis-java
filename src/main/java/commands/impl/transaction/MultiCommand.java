@@ -13,7 +13,7 @@ public class MultiCommand implements Command {
     @Override
     public Callable<CommandResponse> handleContext(CommandContext context) {
         return () -> {
-            UUID transactionId = TransactionManager.startTransaction();
+            UUID transactionId = TransactionManager.startTransaction(context.getClientUUID());
             context.startTransaction(transactionId);
             return new CommandResponse(RedisSerializer.okString());
         };
