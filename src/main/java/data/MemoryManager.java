@@ -588,6 +588,32 @@ public class MemoryManager {
     }
 
     /**
+     * Returns range from Redis Stream with corresponding entries (inclusive)
+     * @param streamKey stream key to get from
+     * @param startEntryId entry id to start from
+     * @param endEntryId entry id to end at
+     * @return list of matching entry ids
+     */
+    public static List<StreamEntry> rangeFromStream(String streamKey, String startEntryId, String endEntryId) {
+        ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
+                .getLock("stream[" + streamKey + "]")
+                .readLock();
+
+        try {
+            readLock.lock();
+            return streamStore
+                    .computeIfAbsent(streamKey, key -> new RedisStream())
+                    .range(startEntryId, endEntryId);
+        } catch (Exception ex) {
+            Logger.error(format("Error range stream[%s] entry[%s -> %s]\n", streamKey, startEntryId, endEntryId), ex);
+        } finally {
+            readLock.unlock();
+        }
+
+        return List.of();
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist

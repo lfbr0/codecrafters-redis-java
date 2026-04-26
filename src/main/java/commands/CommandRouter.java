@@ -15,6 +15,7 @@ import commands.impl.replication.ReplConfCommand;
 import commands.impl.replication.WaitCommand;
 import commands.impl.sortedset.*;
 import commands.impl.stream.XAddCommand;
+import commands.impl.stream.XRangeCommand;
 import commands.impl.transaction.*;
 import logger.Logger;
 
@@ -46,7 +47,7 @@ public class CommandRouter {
             // Pub/Sub commands
             new SubscribeCommand(), new PublishCommand(), new UnsubscribeCommand(),
             // Stream commands
-            new XAddCommand()
+            new XAddCommand(), new XRangeCommand()
     };
 
     /**
