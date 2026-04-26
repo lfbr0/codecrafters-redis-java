@@ -32,7 +32,7 @@ public class MemoryManager {
     // For sorted sets
     private static final Map<String, RedisSortedSet> sortedSetStore = new ConcurrentHashMap<>();
     // For streams
-    private static final Map<String, List<StreamEntry>> streamStore = new ConcurrentHashMap<>();
+    private static final Map<String, RedisStream> streamStore = new ConcurrentHashMap<>();
 
 
     /**
@@ -559,22 +559,23 @@ public class MemoryManager {
      *
      * @param streamKey   stream key
      * @param streamEntry stream entry
-     * @return
+     * @return stream entry id if added, empty if not
      */
-    public static boolean addToStream(String streamKey, StreamEntry streamEntry) {
+    public static Optional<String> addToStream(String streamKey, StreamEntry streamEntry) {
         ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
                 .getLock("stream[" + streamKey + "]")
                 .writeLock();
-        boolean appended = false;
+
+        Optional<String> appendedStreamEntryId = Optional.empty();
 
         try {
             writeLock.lock();
 
-            appended = streamStore
+            appendedStreamEntryId = streamStore
                     .computeIfAbsent(streamKey, key -> new RedisStream())
-                    .add(streamEntry);
+                    .addWithAutoGeneration(streamEntry);
 
-            if (appended) {
+            if (appendedStreamEntryId.isPresent()) {
                 TransactionManager.notifyKeyModified(streamKey);
             }
         } catch (Exception ex) {
@@ -583,7 +584,7 @@ public class MemoryManager {
             writeLock.unlock();
         }
 
-        return appended;
+        return appendedStreamEntryId;
     }
 
     /**

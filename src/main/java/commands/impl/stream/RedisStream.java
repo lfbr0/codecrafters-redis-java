@@ -1,11 +1,53 @@
 package commands.impl.stream;
 
-import java.util.AbstractList;
-import java.util.ArrayList;
+import java.util.*;
 
 public class RedisStream extends AbstractList<StreamEntry> {
 
     private final ArrayList<StreamEntry> internalList = new ArrayList<>();
+
+    public Optional<String> addWithAutoGeneration(StreamEntry newEntry) {
+        String newEntryId = newEntry.getStreamEntryId();
+        // there's a fully defined id, we can use it to the default method
+        if (newEntryId.matches("[0-9]+-[0-9]+")) {
+            return add(newEntry) ? Optional.of(newEntryId) : Optional.empty();
+        }
+        // must generate sequence id
+        if (newEntryId.matches("[0-9]+-\\*")) {
+            String newEntryTs = newEntryId.split("-")[0];
+            long seqId = findNextAvailableSequenceIdByTimestamp(newEntryTs);
+
+            newEntryId = newEntryId.replaceAll("\\*", "" + seqId);
+
+            // bug fix - cannot use 0-0
+            if (newEntryId.equals("0-0")) {
+                newEntryId = "0-1";
+            }
+
+            StreamEntry updatedNewEntry = new StreamEntry(newEntry.getStreamKey(), newEntryId);
+            return add(updatedNewEntry) ? Optional.of(newEntryId) : Optional.empty();
+        }
+        // must generate everything
+        if (newEntryId.matches("\\*")) {
+            // TODO
+        }
+
+        // no case for this situation
+        return Optional.empty();
+    }
+
+    private long findNextAvailableSequenceIdByTimestamp(String newEntryTs) {
+        OptionalLong maxSeq = internalList.stream()
+                .filter(streamEntry -> streamEntry.getStreamEntryId().startsWith(newEntryTs + "-"))
+                .map(streamEntry -> streamEntry.getStreamEntryId().split("-")[1])
+                .mapToLong(Long::parseLong)
+                .max();
+
+        if (maxSeq.isPresent()) {
+            return maxSeq.getAsLong() + 1;
+        }
+        return 0;
+    }
 
     /**
      * If empty add as last. If not, check if last entry id is bigger than all

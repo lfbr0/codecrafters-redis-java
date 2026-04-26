@@ -45,10 +45,10 @@ public class XAddCommand implements Command {
             }
 
             // if did not add to stream, it was because the key is older than any entry in stream
-            if (!MemoryManager.addToStream(streamKey, streamEntry)) {
-                return CommandResponse.error(ERROR_OLD_STREAM_ENTRY_ID);
-            }
-            return CommandResponse.bulkString(streamEntryId);
+            return MemoryManager
+                    .addToStream(streamKey, streamEntry)
+                    .map(CommandResponse::bulkString)
+                    .orElse(CommandResponse.error(ERROR_OLD_STREAM_ENTRY_ID));
         };
     }
 
