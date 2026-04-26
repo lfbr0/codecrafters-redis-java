@@ -22,6 +22,7 @@ public class ExecCommand implements Command {
             Logger.info("Exiting transaction mode " + context.getTransactionId());
             UUID transactionId = context.endTransaction();
 
+            // check if transaction will be aborted because of watched keys being dirtied
             if (TransactionManager.isTransactionAborted(context.getClientUUID())) {
                 TransactionManager.abortTransaction(transactionId);
                 TransactionManager.clearWatchedKeys(context.getClientUUID());
