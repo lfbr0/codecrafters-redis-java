@@ -1,6 +1,7 @@
 package data;
 
 import commands.impl.sortedset.RedisSortedSet;
+import commands.impl.stream.RedisStream;
 import commands.impl.stream.StreamEntry;
 import logger.Logger;
 import serdes.RedisMessage;
@@ -570,10 +571,12 @@ public class MemoryManager {
             writeLock.lock();
 
             appended = streamStore
-                    .computeIfAbsent(streamKey, key -> new ArrayList<>())
+                    .computeIfAbsent(streamKey, key -> new RedisStream())
                     .add(streamEntry);
 
-            TransactionManager.notifyKeyModified(streamKey);
+            if (appended) {
+                TransactionManager.notifyKeyModified(streamKey);
+            }
         } catch (Exception ex) {
             Logger.error(format("Error appending to stream[%s] entry[%s]\n", streamKey, streamEntry), ex);
         } finally {

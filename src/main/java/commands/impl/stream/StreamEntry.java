@@ -3,7 +3,7 @@ package commands.impl.stream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StreamEntry {
+public class StreamEntry implements Comparable<StreamEntry> {
 
     private final String streamKey;
     private final String streamEntryId;
@@ -39,5 +39,22 @@ public class StreamEntry {
                 ", streamEntryId='" + streamEntryId + '\'' +
                 ", properties=" + properties +
                 '}';
+    }
+
+    @Override
+    public int compareTo(StreamEntry streamEntry) {
+        String[] myEntryParts = streamEntryId.split("-");
+        long myTs = Long.parseLong(myEntryParts[0]);
+        long mySeq = Long.parseLong(myEntryParts[1]);
+
+        String[] entryParts = streamEntry.getStreamEntryId().split("-");
+        long entryTs = Long.parseLong(entryParts[0]);
+        long entrySeq = Long.parseLong(entryParts[1]);
+
+        long deltaTs = myTs - entryTs;
+        if (deltaTs != 0)
+            return Long.valueOf(deltaTs).intValue();
+
+        return Long.valueOf(mySeq - entrySeq).intValue();
     }
 }

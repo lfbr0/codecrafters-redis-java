@@ -12,6 +12,11 @@ import java.util.concurrent.Callable;
 import static serdes.RedisMessage.RedisMessageType.BULK_STRING;
 
 public class XAddCommand implements Command {
+
+    public static final String ERROR_ZERO_STREAM_ENTRY_ID = "ERR The ID specified in XADD must be greater than 0-0";
+    public static final String ERROR_OLD_STREAM_ENTRY_ID = "ERR The ID specified in XADD is equal or " +
+            "smaller than the target stream top item";
+
     @Override
     public Callable<CommandResponse> handleContext(CommandContext context) {
         return () -> {
@@ -27,6 +32,9 @@ public class XAddCommand implements Command {
 
             String streamKey = streamKeyRaw.getContent().toString();
             String streamEntryId = streamEntryIdRaw.getContent().toString();
+            if (streamEntryId.equals("0-0")) {
+                return CommandResponse.error(ERROR_ZERO_STREAM_ENTRY_ID);
+            }
             StreamEntry streamEntry = new StreamEntry(streamKey, streamEntryId);
 
             for (int i = 2; i < context.getArguments().size() - 1; ++i) {
@@ -36,9 +44,10 @@ public class XAddCommand implements Command {
                 );
             }
 
-            Logger.info("Stream - added to key=" + streamKey +
-                    " entry=" + streamEntry +
-                    " result=" + MemoryManager.addToStream(streamKey, streamEntry));
+            // if did not add to stream, it was because the key is older than any entry in stream
+            if (!MemoryManager.addToStream(streamKey, streamEntry)) {
+                return CommandResponse.error(ERROR_OLD_STREAM_ENTRY_ID);
+            }
             return CommandResponse.bulkString(streamEntryId);
         };
     }
