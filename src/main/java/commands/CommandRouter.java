@@ -14,10 +14,7 @@ import commands.impl.replication.PsyncCommand;
 import commands.impl.replication.ReplConfCommand;
 import commands.impl.replication.WaitCommand;
 import commands.impl.sortedsets.*;
-import commands.impl.transaction.DiscardCommand;
-import commands.impl.transaction.ExecCommand;
-import commands.impl.transaction.IncrCommand;
-import commands.impl.transaction.MultiCommand;
+import commands.impl.transaction.*;
 import logger.Logger;
 
 /**
@@ -36,7 +33,7 @@ public class CommandRouter {
             // Stream commands
             new TypeCommand(),
             // Transaction commands
-            new IncrCommand(), new MultiCommand(), new ExecCommand(), new DiscardCommand(),
+            new IncrCommand(), new MultiCommand(), new ExecCommand(), new DiscardCommand(), new WatchCommand()
             // Replication commands
             new InfoCommand(), new ReplConfCommand(), new PsyncCommand(), new WaitCommand(),
             // Sorted sets
