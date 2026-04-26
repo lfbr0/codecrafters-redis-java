@@ -57,7 +57,7 @@ public class XRangeCommand implements Command {
                                 .stream()
                                 .flatMap(entry -> Stream.of(
                                         new RedisMessage().setType(BULK_STRING).setContent(entry.getKey()),
-                                        new RedisMessage().setContent(BULK_STRING).setContent(entry.getValue())
+                                        new RedisMessage().setType(BULK_STRING).setContent(entry.getValue())
                                 ))
                                 .toList();
                         RedisMessage propertiesArray = new RedisMessage().setType(ARRAY).setContent(properties);

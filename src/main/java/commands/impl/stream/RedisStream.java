@@ -85,7 +85,7 @@ public class RedisStream extends AbstractList<StreamEntry> {
                     String streamKey = streamEntry.getStreamKey();
                     StreamEntry startEntry = new StreamEntry(streamKey, startEntryId);
                     StreamEntry endEntry = new StreamEntry(streamKey, endEntryId);
-                    return startEntry.compareTo(streamEntry) >= 0 && endEntry.compareTo(streamEntry) <= 0;
+                    return streamEntry.compareTo(startEntry) >= 0 && streamEntry.compareTo(endEntry) <= 0;
                 })
                 .toList();
     }

@@ -601,6 +601,11 @@ public class MemoryManager {
 
         try {
             readLock.lock();
+
+            Logger.info("MemoryManager - Range for stream key=" + streamKey +
+                    " startEntryId=" + startEntryId +
+                    " endEntryId=" + endEntryId);
+
             return streamStore
                     .computeIfAbsent(streamKey, key -> new RedisStream())
                     .range(startEntryId, endEntryId);
