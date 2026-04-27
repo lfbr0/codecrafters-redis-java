@@ -28,7 +28,7 @@ public class MemoryManager {
     // For lists in rpush
     private static final Map<String, List<RedisMessage>> listStore = new ConcurrentHashMap<>();
     // For lists subscription
-    private static final Map<String, Queue<SynchronousQueue<RedisMessage>>> listPopSubs = new ConcurrentHashMap<>();
+    private static final Map<String, Queue<BlockingQueue<RedisMessage>>> listPopSubs = new ConcurrentHashMap<>();
 
     // For sorted sets
     private static final Map<String, RedisSortedSet> sortedSetStore = new ConcurrentHashMap<>();
@@ -327,15 +327,36 @@ public class MemoryManager {
     }
 
     /**
-     * Registers a SynchronousQueue to be notified when an element is popped from the list stored at listKey.
+     * Registers a BlockingQueue to be notified when an element is popped from the list stored at listKey.
      * @param listKey the key of the list to subscribe to for pop notifications
      * @param queue queue to place popped value
      */
-    public static void blockingPopFromList(String listKey, SynchronousQueue<RedisMessage> queue) {
+    public static void blockingPopFromList(String listKey, BlockingQueue<RedisMessage> queue) {
         Logger.info("Blocking pop from list: " + listKey);
-        listPopSubs
-                .computeIfAbsent(listKey, k -> new ConcurrentLinkedQueue<>())
-                .add(queue);
+        ReentrantReadWriteLock.WriteLock writeLock = KeyLockFactory
+                .getLock("list[" + listKey + "]")
+                .writeLock();
+
+        try {
+            writeLock.lock();
+            List<RedisMessage> list = listStore.get(listKey);
+            if (list != null && !list.isEmpty()) {
+                RedisMessage poppedValue = list.removeFirst();
+                if (queue.offer(poppedValue)) {
+                    return;
+                } else {
+                    // This shouldn't happen with LinkedBlockingQueue(1) and a fresh queue,
+                    // but if it does, put it back.
+                    list.addFirst(poppedValue);
+                }
+            }
+
+            listPopSubs
+                    .computeIfAbsent(listKey, k -> new ConcurrentLinkedQueue<>())
+                    .add(queue);
+        } finally {
+            writeLock.unlock();
+        }
     }
 
     /**
@@ -357,15 +378,18 @@ public class MemoryManager {
                 return;
             }
 
-            Queue<SynchronousQueue<RedisMessage>> subs = listPopSubs.get(listKey);
+            Queue<BlockingQueue<RedisMessage>> subs = listPopSubs.get(listKey);
             if (subs == null || subs.isEmpty()) {
                 return;
             }
 
             RedisMessage poppedValue = list.removeFirst();
-            SynchronousQueue<RedisMessage> sub = subs.poll();
+            BlockingQueue<RedisMessage> sub = subs.poll();
             if (sub != null) {
-                sub.offer(poppedValue);
+                if (!sub.offer(poppedValue)) {
+                    // If offer fails, put the value back and the sub back (or just drop the sub if it's full/closed)
+                    list.addFirst(poppedValue);
+                }
             }
         } finally {
             writeLock.unlock();

@@ -10,7 +10,8 @@ import serdes.RedisSerializer;
 
 import java.util.List;
 import java.util.concurrent.Callable;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 public class BlpopCommand implements Command {
@@ -39,7 +40,7 @@ public class BlpopCommand implements Command {
     }
 
     private byte[] performBlockingPop(String key, long timeoutMillis) throws InterruptedException {
-        SynchronousQueue<RedisMessage> queue = new SynchronousQueue<>();
+        BlockingQueue<RedisMessage> queue = new LinkedBlockingQueue<>(1);
         MemoryManager.blockingPopFromList(key, queue);
         RedisMessage poppedValue = queue.poll(timeoutMillis, TimeUnit.MILLISECONDS);
 
