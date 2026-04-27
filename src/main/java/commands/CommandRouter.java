@@ -1,6 +1,7 @@
 package commands;
 
 import commands.impl.*;
+import commands.impl.auth.AclCommand;
 import commands.impl.geospatial.GeoAddCommand;
 import commands.impl.geospatial.GeoDistCommand;
 import commands.impl.geospatial.GeoPosCommand;
@@ -19,8 +20,6 @@ import commands.impl.stream.XRangeCommand;
 import commands.impl.stream.XReadCommand;
 import commands.impl.transaction.*;
 import logger.Logger;
-
-import java.util.stream.Stream;
 
 /**
  * CommandRouter is responsible for routing incoming command names to their corresponding Command implementations.
@@ -48,7 +47,9 @@ public class CommandRouter {
             // Pub/Sub commands
             new SubscribeCommand(), new PublishCommand(), new UnsubscribeCommand(),
             // Stream commands
-            new XAddCommand(), new XRangeCommand(), new XReadCommand()
+            new XAddCommand(), new XRangeCommand(), new XReadCommand(),
+            // Auth commands
+            new AclCommand()
     };
 
     /**
