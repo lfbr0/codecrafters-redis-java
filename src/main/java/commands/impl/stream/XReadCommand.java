@@ -86,7 +86,7 @@ public class XReadCommand implements Command {
 
         // Return null bulk string if no entries were found in any stream
         if (streamsResult.isEmpty()) {
-            return new CommandResponse(RedisSerializer.nullBulkString());
+            return new CommandResponse(RedisSerializer.nullArray());
         }
 
         // Return nested array of streams
@@ -123,7 +123,7 @@ public class XReadCommand implements Command {
         StreamEntry newEntry = (timeout == 0) ? queue.take() : queue.poll(timeout, TimeUnit.MILLISECONDS);
 
         if (newEntry == null) {
-            return new CommandResponse(RedisSerializer.nullBulkString());
+            return new CommandResponse(RedisSerializer.nullArray());
         }
 
         // When a new entry arrives, we re-run non-blocking read to pick up all available data.
