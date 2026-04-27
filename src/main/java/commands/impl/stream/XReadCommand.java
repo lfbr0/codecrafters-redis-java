@@ -97,11 +97,12 @@ public class XReadCommand implements Command {
     private CommandResponse handleBlockingRead(List<String> keys, List<String> ids, long timeout) throws InterruptedException {
         // Resolve '$' IDs before potentially blocking
         List<String> resolvedIds = new ArrayList<>(ids);
+        // resolution for '$' ID - should be last entry of stream at the time of the command
         for (int i = 0; i < keys.size(); i++) {
             if ("$".equals(ids.get(i))) {
-                List<StreamEntry> lastEntries = MemoryManager.rangeFromStream(keys.get(i), "0-0", null, true);
-                if (!lastEntries.isEmpty()) {
-                    resolvedIds.set(i, lastEntries.getLast().getStreamEntryId());
+                List<StreamEntry> allEntries = MemoryManager.rangeFromStream(keys.get(i), "0-0", null, true);
+                if (!allEntries.isEmpty()) {
+                    resolvedIds.set(i, allEntries.getLast().getStreamEntryId());
                 } else {
                     resolvedIds.set(i, "0-0");
                 }
@@ -110,7 +111,8 @@ public class XReadCommand implements Command {
 
         // Try non-blocking read first with resolved IDs
         CommandResponse immediateResponse = handleNonBlockingRead(keys, resolvedIds);
-        if (immediateResponse.getResponseBytes() != null && !new String(immediateResponse.getResponseBytes()).equals("$-1\r\n")) {
+        String immediateResponseStr = new String(immediateResponse.getResponseBytes());
+        if (!"*-1\r\n".equals(immediateResponseStr) && !"$-1\r\n".equals(immediateResponseStr)) {
             return immediateResponse;
         }
 
