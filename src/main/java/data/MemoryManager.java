@@ -670,6 +670,21 @@ public class MemoryManager {
     }
 
     /**
+     * Unregisters intent to block from stream
+     * @param streamKey stream key
+     * @param streamEntryId entry id
+     * @param queue queue to unregister
+     */
+    public static void unblockingFromStream(String streamKey, String streamEntryId, BlockingQueue<StreamEntry> queue) {
+        Logger.info("Unblocking from stream=" + streamKey + " entryId=" + streamEntryId);
+        Queue<BlockingQueue<StreamEntry>> subs = streamStoreSubs.get(new StreamEntry(streamKey, streamEntryId));
+        if (subs != null) {
+            subs.remove(queue);
+            // Optionally remove empty queue from map, but it's a bit tricky with ConcurrentHashMap and multiple thresholds
+        }
+    }
+
+    /**
      * Returns the type of the value stored at the given key. If the key does not exist, it returns null.
      * @param key the key to check the type of
      * @return the type of the value stored at the key ("string", "list", etc.), or null if the key does not exist

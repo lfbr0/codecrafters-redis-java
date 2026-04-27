@@ -110,27 +110,35 @@ public class XReadCommand implements Command {
             }
         }
 
-        // Try non-blocking read first with resolved IDs
-        CommandResponse immediateResponse = handleNonBlockingRead(keys, resolvedIds);
-        String immediateResponseStr = new String(immediateResponse.getResponseBytes());
-        if (!"*-1\r\n".equals(immediateResponseStr) && !"$-1\r\n".equals(immediateResponseStr)) {
-            return immediateResponse;
-        }
-
-        // Nothing found, block on the first stream for simplicity (or all of them)
+        // To avoid race conditions, register for blocking BEFORE checking for data.
         BlockingQueue<StreamEntry> queue = new LinkedBlockingQueue<>();
         for (int i = 0; i < keys.size(); i++) {
             MemoryManager.blockingFromStream(keys.get(i), resolvedIds.get(i), queue);
         }
 
-        StreamEntry newEntry = (timeout == 0) ? queue.take() : queue.poll(timeout, TimeUnit.MILLISECONDS);
+        try {
+            // Check if data is already available
+            CommandResponse immediateResponse = handleNonBlockingRead(keys, resolvedIds);
+            String immediateResponseStr = new String(immediateResponse.getResponseBytes());
+            if (!"*-1\r\n".equals(immediateResponseStr) && !"$-1\r\n".equals(immediateResponseStr)) {
+                return immediateResponse;
+            }
 
-        if (newEntry == null) {
-            return new CommandResponse(RedisSerializer.nullArray());
+            // No immediate data, wait on the queue
+            StreamEntry newEntry = (timeout == 0) ? queue.take() : queue.poll(timeout, TimeUnit.MILLISECONDS);
+
+            if (newEntry == null) {
+                return new CommandResponse(RedisSerializer.nullArray());
+            }
+
+            // Re-run non-blocking read to collect all available entries
+            return handleNonBlockingRead(keys, resolvedIds);
+        } finally {
+            // Cleanup subscriptions
+            for (int i = 0; i < keys.size(); i++) {
+                MemoryManager.unblockingFromStream(keys.get(i), resolvedIds.get(i), queue);
+            }
         }
-
-        // When a new entry arrives, we re-run non-blocking read to pick up all available data.
-        return handleNonBlockingRead(keys, resolvedIds);
     }
 
     private RedisMessage formatStreamResponse(String key, List<StreamEntry> entries) {
