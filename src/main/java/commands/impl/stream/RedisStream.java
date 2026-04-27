@@ -80,19 +80,27 @@ public class RedisStream extends AbstractList<StreamEntry> {
     }
 
     /**
+     * Returns range from Redis Stream with corresponding entries
      *
-     * @param startEntryId
-     * @param endEntryId
-     * @return
+     * @param startEntryId starting entry id
+     * @param endEntryId ending entry id (can be null for no end)
+     * @param inclusive whether the startEntryId is inclusive
+     * @return list of matching entry ids
      */
-    public List<StreamEntry> range(String startEntryId, String endEntryId) {
+    public List<StreamEntry> range(String startEntryId, String endEntryId, boolean inclusive) {
         return internalList.stream()
                 .filter(streamEntry -> {
                     String streamKey = streamEntry.getStreamKey();
 
-                    if (streamEntry.compareTo(new StreamEntry(streamKey, startEntryId)) < 0) {
-                        return false;
+                    // do not accept if stream entry is older than start entry
+                    int comparison = streamEntry.compareTo(new StreamEntry(streamKey, startEntryId));
+                    if (inclusive) {
+                        if (comparison < 0) return false;
+                    } else {
+                        if (comparison <= 0) return false;
                     }
+
+                    // if end entry is specified, stream entry has to be older than it
                     if (endEntryId != null) {
                         return streamEntry.compareTo(new StreamEntry(streamKey, endEntryId)) <= 0;
                     }
@@ -101,5 +109,16 @@ public class RedisStream extends AbstractList<StreamEntry> {
                     return true;
                 })
                 .toList();
+    }
+
+    /**
+     * Returns range from Redis Stream with corresponding entries (inclusive)
+     *
+     * @param startEntryId starting entry id
+     * @param endEntryId ending entry id
+     * @return list of matching entry ids
+     */
+    public List<StreamEntry> range(String startEntryId, String endEntryId) {
+        return range(startEntryId, endEntryId, true);
     }
 }

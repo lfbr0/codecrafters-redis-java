@@ -588,13 +588,18 @@ public class MemoryManager {
     }
 
     /**
-     * Returns range from Redis Stream with corresponding entries (inclusive)
+     * Returns range from Redis Stream with corresponding entries
      * @param streamKey stream key to get from
      * @param startEntryId entry id to start from
      * @param endEntryId entry id to end at
+     * @param inclusive whether the startEntryId is inclusive
      * @return list of matching entry ids
      */
-    public static List<StreamEntry> rangeFromStream(String streamKey, String startEntryId, String endEntryId) {
+    public static List<StreamEntry> rangeFromStream(String streamKey,
+                                                    String startEntryId,
+                                                    String endEntryId,
+                                                    boolean inclusive) {
+
         ReentrantReadWriteLock.ReadLock readLock = KeyLockFactory
                 .getLock("stream[" + streamKey + "]")
                 .readLock();
@@ -604,11 +609,12 @@ public class MemoryManager {
 
             Logger.info("MemoryManager - Range for stream key=" + streamKey +
                     " startEntryId=" + startEntryId +
-                    " endEntryId=" + endEntryId);
+                    " endEntryId=" + endEntryId +
+                    " inclusive=" + inclusive);
 
             return streamStore
                     .computeIfAbsent(streamKey, key -> new RedisStream())
-                    .range(startEntryId, endEntryId);
+                    .range(startEntryId, endEntryId, inclusive);
         } catch (Exception ex) {
             Logger.error(format("Error range stream[%s] entry[%s -> %s]\n", streamKey, startEntryId, endEntryId), ex);
         } finally {
@@ -616,6 +622,17 @@ public class MemoryManager {
         }
 
         return List.of();
+    }
+
+    /**
+     * Returns range from Redis Stream with corresponding entries (inclusive)
+     * @param streamKey stream key to get from
+     * @param startEntryId entry id to start from
+     * @param endEntryId entry id to end at
+     * @return list of matching entry ids
+     */
+    public static List<StreamEntry> rangeFromStream(String streamKey, String startEntryId, String endEntryId) {
+        return rangeFromStream(streamKey, startEntryId, endEntryId, true);
     }
 
     /**
