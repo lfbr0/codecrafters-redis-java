@@ -84,7 +84,7 @@ public class XReadCommand implements Command {
             streamsResult.add(formatStreamResponse(key, entries));
         }
 
-        // Return null bulk string if no entries were found in any stream
+        // Return null array if no entries were found in any stream
         if (streamsResult.isEmpty()) {
             return new CommandResponse(RedisSerializer.nullArray());
         }
