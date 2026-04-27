@@ -9,8 +9,9 @@ import serdes.RedisSerializer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -117,7 +118,7 @@ public class XReadCommand implements Command {
         }
 
         // Nothing found, block on the first stream for simplicity (or all of them)
-        SynchronousQueue<StreamEntry> queue = new SynchronousQueue<>();
+        BlockingQueue<StreamEntry> queue = new LinkedBlockingQueue<>();
         for (int i = 0; i < keys.size(); i++) {
             MemoryManager.blockingFromStream(keys.get(i), resolvedIds.get(i), queue);
         }

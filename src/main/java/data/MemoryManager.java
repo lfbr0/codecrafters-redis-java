@@ -36,7 +36,7 @@ public class MemoryManager {
     // For streams
     private static final Map<String, RedisStream> streamStore = new ConcurrentHashMap<>();
     // For stream subscription
-    private static final Map<StreamEntry, Queue<SynchronousQueue<StreamEntry>>> streamStoreSubs = new ConcurrentHashMap<>();
+    private static final Map<StreamEntry, Queue<BlockingQueue<StreamEntry>>> streamStoreSubs = new ConcurrentHashMap<>();
 
 
     /**
@@ -599,7 +599,7 @@ public class MemoryManager {
             if (threshold.getStreamKey().equals(streamKey)) {
                 // Check if the new entry ID is greater than the threshold ID
                 if (streamEntry.compareTo(threshold) > 0) {
-                    SynchronousQueue<StreamEntry> sub;
+                    BlockingQueue<StreamEntry> sub;
                     while ((sub = subs.poll()) != null) {
                         sub.offer(streamEntry);
                     }
@@ -662,7 +662,7 @@ public class MemoryManager {
      * @param streamEntryId entry id to sub to
      * @param queue queue to register & publish response to
      */
-    public static void blockingFromStream(String streamKey, String streamEntryId, SynchronousQueue<StreamEntry> queue) {
+    public static void blockingFromStream(String streamKey, String streamEntryId, BlockingQueue<StreamEntry> queue) {
         Logger.info("Blocking from stream=" + streamKey + " entryId=" + streamEntryId);
         streamStoreSubs
                 .computeIfAbsent(new StreamEntry(streamKey, streamEntryId), k -> new ConcurrentLinkedQueue<>())
