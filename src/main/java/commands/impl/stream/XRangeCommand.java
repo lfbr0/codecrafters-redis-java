@@ -85,7 +85,7 @@ public class XRangeCommand implements Command {
             return entryId.replaceAll("\\*", "0");
         }
         // return baseline entry id
-        if (entryId.matches("\\*")) {
+        if (entryId.matches("\\*") || entryId.matches("-")) {
             return "0-0";
         }
         // not a valid entry id
