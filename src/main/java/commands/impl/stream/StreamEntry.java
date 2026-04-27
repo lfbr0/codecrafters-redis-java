@@ -2,6 +2,7 @@ package commands.impl.stream;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class StreamEntry implements Comparable<StreamEntry> {
 
@@ -56,5 +57,16 @@ public class StreamEntry implements Comparable<StreamEntry> {
             return Long.valueOf(deltaTs).intValue();
 
         return Long.valueOf(mySeq - entrySeq).intValue();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof StreamEntry that)) return false;
+        return streamKey.equals(that.streamKey) && streamEntryId.equals(that.streamEntryId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(streamKey, streamEntryId);
     }
 }

@@ -29,10 +29,14 @@ public class MemoryManager {
     private static final Map<String, List<RedisMessage>> listStore = new ConcurrentHashMap<>();
     // For lists subscription
     private static final Map<String, Queue<SynchronousQueue<RedisMessage>>> listPopSubs = new ConcurrentHashMap<>();
+
     // For sorted sets
     private static final Map<String, RedisSortedSet> sortedSetStore = new ConcurrentHashMap<>();
+
     // For streams
     private static final Map<String, RedisStream> streamStore = new ConcurrentHashMap<>();
+    // For stream subscription
+    private static final Map<StreamEntry, Queue<SynchronousQueue<StreamEntry>>> streamStoreSubs = new ConcurrentHashMap<>();
 
 
     /**
@@ -577,6 +581,7 @@ public class MemoryManager {
 
             if (appendedStreamEntryId.isPresent()) {
                 TransactionManager.notifyKeyModified(streamKey);
+                notifyStreamSubscribers(streamKey, streamEntry);
             }
         } catch (Exception ex) {
             Logger.error(format("Error appending to stream[%s] entry[%s]\n", streamKey, streamEntry), ex);
@@ -585,6 +590,22 @@ public class MemoryManager {
         }
 
         return appendedStreamEntryId;
+    }
+
+    private static void notifyStreamSubscribers(String streamKey, StreamEntry streamEntry) {
+        // streamStoreSubs key is a StreamEntry(streamKey, lastSeenEntryId)
+        // We need to notify all subscribers whose threshold ID is less than the new entry ID
+        streamStoreSubs.forEach((threshold, subs) -> {
+            if (threshold.getStreamKey().equals(streamKey)) {
+                // Check if the new entry ID is greater than the threshold ID
+                if (streamEntry.compareTo(threshold) > 0) {
+                    SynchronousQueue<StreamEntry> sub;
+                    while ((sub = subs.poll()) != null) {
+                        sub.offer(streamEntry);
+                    }
+                }
+            }
+        });
     }
 
     /**
@@ -633,6 +654,19 @@ public class MemoryManager {
      */
     public static List<StreamEntry> rangeFromStream(String streamKey, String startEntryId, String endEntryId) {
         return rangeFromStream(streamKey, startEntryId, endEntryId, true);
+    }
+
+    /**
+     * Registers intent to block from stream
+     * @param streamKey stream key to sub to
+     * @param streamEntryId entry id to sub to
+     * @param queue queue to register & publish response to
+     */
+    public static void blockingFromStream(String streamKey, String streamEntryId, SynchronousQueue<StreamEntry> queue) {
+        Logger.info("Blocking from stream=" + streamKey + " entryId=" + streamEntryId);
+        streamStoreSubs
+                .computeIfAbsent(new StreamEntry(streamKey, streamEntryId), k -> new ConcurrentLinkedQueue<>())
+                .add(queue);
     }
 
     /**
