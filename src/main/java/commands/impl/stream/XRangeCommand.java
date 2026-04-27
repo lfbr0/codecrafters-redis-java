@@ -38,10 +38,11 @@ public class XRangeCommand implements Command {
 
             // format entry ids
             startEntryId = formatEntryId(startEntryId);
-            endEntryId = formatEntryId(endEntryId);
-            if (startEntryId == null || endEntryId == null) {
-                throw new IllegalArgumentException("XRANGE failed to format start entry id or end entry id!");
+            if (startEntryId == null) {
+                throw new IllegalArgumentException("XRANGE failed to format start entry id!");
             }
+            // end entry id can be null to signify no end
+            endEntryId = formatEntryId(endEntryId);
 
             List<RedisMessage> innerStreamEntriesArray = MemoryManager
                     .rangeFromStream(streamKey, startEntryId, endEntryId)
@@ -88,7 +89,7 @@ public class XRangeCommand implements Command {
         if (entryId.matches("\\*") || entryId.matches("-")) {
             return "0-0";
         }
-        // not a valid entry id
+        // not a valid entry id or is "+"
         return null;
     }
 

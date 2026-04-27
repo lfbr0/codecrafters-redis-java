@@ -79,13 +79,26 @@ public class RedisStream extends AbstractList<StreamEntry> {
         return internalList.size();
     }
 
+    /**
+     *
+     * @param startEntryId
+     * @param endEntryId
+     * @return
+     */
     public List<StreamEntry> range(String startEntryId, String endEntryId) {
         return internalList.stream()
                 .filter(streamEntry -> {
                     String streamKey = streamEntry.getStreamKey();
-                    StreamEntry startEntry = new StreamEntry(streamKey, startEntryId);
-                    StreamEntry endEntry = new StreamEntry(streamKey, endEntryId);
-                    return streamEntry.compareTo(startEntry) >= 0 && streamEntry.compareTo(endEntry) <= 0;
+
+                    if (streamEntry.compareTo(new StreamEntry(streamKey, startEntryId)) < 0) {
+                        return false;
+                    }
+                    if (endEntryId != null) {
+                        return streamEntry.compareTo(new StreamEntry(streamKey, endEntryId)) <= 0;
+                    }
+
+                    // passed all filters
+                    return true;
                 })
                 .toList();
     }
