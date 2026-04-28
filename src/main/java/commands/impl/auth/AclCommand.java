@@ -17,8 +17,8 @@ public class AclCommand implements Command {
     @Override
     public Callable<CommandResponse> handleContext(CommandContext context) {
         return () -> {
-            if (context.getArguments() == null || context.getArguments().size() != 1) {
-                throw new IllegalArgumentException("ACL command expects exactly 1 argument!");
+            if (context.getArguments() == null || context.getArguments().isEmpty()) {
+                throw new IllegalArgumentException("ACL command expects at least 1 argument!");
             }
 
             RedisMessage aclArgRaw = context.getArguments().getFirst();
