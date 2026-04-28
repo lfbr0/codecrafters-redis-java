@@ -52,7 +52,10 @@ public class AclCommand implements Command {
                 RedisMessage nopassFlagProp = new RedisMessage().setType(BULK_STRING).setContent("nopass");
                 RedisMessage flagProps = new RedisMessage().setType(ARRAY).setContent(List.of(nopassFlagProp));
 
-                return new CommandResponse(RedisSerializer.list(flags, flagProps));
+                RedisMessage passwords = new RedisMessage().setType(BULK_STRING).setContent("passwords");
+                RedisMessage passwordProps = new RedisMessage().setType(ARRAY).setContent(List.of());
+
+                return new CommandResponse(RedisSerializer.list(flags, flagProps, passwords, passwordProps));
             }
 
             throw new IllegalArgumentException("ACL command argument is invalid!");
