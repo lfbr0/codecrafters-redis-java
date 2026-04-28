@@ -1,5 +1,6 @@
 package commands.impl.auth;
 
+import auth.DefaultUserAuthenticationManager;
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
@@ -8,6 +9,7 @@ import serdes.RedisMessage;
 import serdes.RedisSerializer;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 
 import static serdes.RedisMessage.RedisMessageType.ARRAY;
@@ -48,12 +50,23 @@ public class AclCommand implements Command {
                     throw new IllegalArgumentException("ACL GETUSER only supports default user at the moment!");
                 }
 
+                Optional<String> passwordHashOpt = DefaultUserAuthenticationManager.getInstance().getPasswordHash();
+
                 RedisMessage flags = new RedisMessage().setType(BULK_STRING).setContent("flags");
-                RedisMessage nopassFlagProp = new RedisMessage().setType(BULK_STRING).setContent("nopass");
-                RedisMessage flagProps = new RedisMessage().setType(ARRAY).setContent(List.of(nopassFlagProp));
+                RedisMessage flagProps = new RedisMessage().setType(ARRAY).setContent(List.of());
+                // no password, therefore no pass prop is active
+                if (passwordHashOpt.isEmpty()) {
+                    RedisMessage nopassFlagProp = new RedisMessage().setType(BULK_STRING).setContent("nopass");
+                    flagProps.setContent(List.of(nopassFlagProp));
+                }
 
                 RedisMessage passwords = new RedisMessage().setType(BULK_STRING).setContent("passwords");
                 RedisMessage passwordProps = new RedisMessage().setType(ARRAY).setContent(List.of());
+                if (passwordHashOpt.isPresent()) {
+                    passwordProps.setContent(
+                            List.of(new RedisMessage().setType(BULK_STRING).setContent(passwordHashOpt.get()))
+                    );
+                }
 
                 return new CommandResponse(RedisSerializer.list(flags, flagProps, passwords, passwordProps));
             }
