@@ -70,6 +70,38 @@ public class AclCommand implements Command {
 
                 return new CommandResponse(RedisSerializer.list(flags, flagProps, passwords, passwordProps));
             }
+            // set user password
+            if (aclArg.equalsIgnoreCase("SETUSER")) {
+                // must have 2 args
+                if (context.getArguments().size() != 3) {
+                    throw new IllegalArgumentException("ACL SETUSER must have 3 argument (user, password)!");
+                }
+
+                RedisMessage userRaw = context.getArguments().get(1);
+                if (userRaw.getType() != BULK_STRING) {
+                    throw new IllegalArgumentException("ACL SETUSER user argument must be bulk string!");
+                }
+
+                RedisMessage passwordRaw = context.getArguments().getLast();
+                if (passwordRaw.getType() != BULK_STRING) {
+                    throw new IllegalArgumentException("ACL SETUSER password argument must be bulk string!");
+                }
+
+                String user = userRaw.getContent().toString();
+                if (!user.equals("default")) {
+                    throw new IllegalArgumentException("ACL SETUSER currently only supported for default user!");
+                }
+
+                String password = passwordRaw.getContent().toString();
+                if (!password.startsWith(">")) {
+                    throw new IllegalArgumentException("ACL SETUSER is not using > to set password!");
+                }
+                // remove beggining >
+                password = password.substring(1);
+
+                DefaultUserAuthenticationManager.getInstance().setPassword(password);
+                return CommandResponse.ok();
+            }
 
             throw new IllegalArgumentException("ACL command argument is invalid!");
         };
