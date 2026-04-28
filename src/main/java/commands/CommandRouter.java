@@ -34,8 +34,6 @@ public class CommandRouter {
             new SetCommand(), new GetCommand(), new KeysCommand(),
             // List commands
             new RpushCommand(), new LrangeCommand(), new LpushCommand(), new LlenCommand(), new LpopCommand(), new BlpopCommand(),
-            // Stream commands
-            new TypeCommand(),
             // Transaction commands
             new IncrCommand(), new MultiCommand(), new ExecCommand(), new DiscardCommand(), new WatchCommand(), new UnwatchCommand(),
             // Replication commands
@@ -47,7 +45,7 @@ public class CommandRouter {
             // Pub/Sub commands
             new SubscribeCommand(), new PublishCommand(), new UnsubscribeCommand(),
             // Stream commands
-            new XAddCommand(), new XRangeCommand(), new XReadCommand(),
+            new TypeCommand(), new XAddCommand(), new XRangeCommand(), new XReadCommand(),
             // Auth commands
             new AclCommand()
     };

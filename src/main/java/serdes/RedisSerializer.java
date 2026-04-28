@@ -1,5 +1,7 @@
 package serdes;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class RedisSerializer {
@@ -54,6 +56,12 @@ public class RedisSerializer {
         redisMessage.setType(RedisMessage.RedisMessageType.INTEGER);
         redisMessage.setContent(value);
         return serialize(redisMessage);
+    }
+
+    public static byte[] list(RedisMessage ... messages) {
+        List<RedisMessage> msgList = new ArrayList<>(messages.length);
+        msgList.addAll(Arrays.asList(messages));
+        return list(msgList);
     }
 
     public static byte[] list(List<RedisMessage> messages) {
