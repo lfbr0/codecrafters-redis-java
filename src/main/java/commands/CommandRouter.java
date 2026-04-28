@@ -2,6 +2,7 @@ package commands;
 
 import commands.impl.*;
 import commands.impl.auth.AclCommand;
+import commands.impl.auth.AuthCommand;
 import commands.impl.geospatial.GeoAddCommand;
 import commands.impl.geospatial.GeoDistCommand;
 import commands.impl.geospatial.GeoPosCommand;
@@ -47,7 +48,7 @@ public class CommandRouter {
             // Stream commands
             new TypeCommand(), new XAddCommand(), new XRangeCommand(), new XReadCommand(),
             // Auth commands
-            new AclCommand()
+            new AclCommand(), new AuthCommand()
     };
 
     /**
