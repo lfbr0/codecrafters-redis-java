@@ -49,7 +49,8 @@ public class AclCommand implements Command {
                 }
 
                 RedisMessage flags = new RedisMessage().setType(BULK_STRING).setContent("flags");
-                RedisMessage flagProps = new RedisMessage().setType(ARRAY).setContent(List.of("nopass"));
+                RedisMessage nopassFlagProp = new RedisMessage().setType(BULK_STRING).setContent("nopass");
+                RedisMessage flagProps = new RedisMessage().setType(ARRAY).setContent(List.of(nopassFlagProp));
 
                 return new CommandResponse(RedisSerializer.list(flags, flagProps));
             }
