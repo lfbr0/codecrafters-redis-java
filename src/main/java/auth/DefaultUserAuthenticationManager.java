@@ -7,13 +7,17 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DefaultUserAuthenticationManager {
 
     private static DefaultUserAuthenticationManager INSTANCE;
     private final AtomicReference<String> defaultHash = new AtomicReference<>(null);
+    private final Set<UUID> authenticatedUserIds = new ConcurrentSkipListSet<>();
 
     public static synchronized DefaultUserAuthenticationManager getInstance() {
         if (INSTANCE == null) {
@@ -60,5 +64,15 @@ public class DefaultUserAuthenticationManager {
         return getPasswordHash()
                 .map(hash -> hash.equals( computeHash(password) ))
                 .orElse(false);
+    }
+
+    public boolean userIsAuthenticated(UUID clientUUID) {
+        // if no pass, then add this to auth'd users & let him pass
+        String currentHash = defaultHash.get();
+        if (currentHash == null) {
+            authenticatedUserIds.add(clientUUID);
+            return true;
+        }
+        return authenticatedUserIds.contains(clientUUID);
     }
 }

@@ -1,5 +1,6 @@
 package handler;
 
+import auth.DefaultUserAuthenticationManager;
 import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
@@ -47,6 +48,11 @@ public abstract class AbstractRedisClientHandler implements Runnable {
         if (elements.getFirst().getType() != BULK_STRING) {
             Logger.error("Expected the first element to be a bulk string command, but got: " + elements.getFirst().getType());
             return null;
+        }
+
+        // only allow authenticated requests
+        if (!DefaultUserAuthenticationManager.getInstance().userIsAuthenticated(clientUUID)) {
+            return CommandResponse.error("NOAUTH Authentication required.");
         }
 
         CommandContext ctx = new CommandContext(
