@@ -30,7 +30,7 @@ public class AuthCommand implements Command {
             }
 
             String password = passwordRaw.getContent().toString();
-            if (DefaultUserAuthenticationManager.getInstance().passwordMatches(password)) {
+            if (DefaultUserAuthenticationManager.getInstance().tryAuthenticate(password, context.getClientUUID())) {
                 return CommandResponse.ok();
             } else {
                 return CommandResponse.error("WRONGPASS invalid username-password pair or user is disabled.");

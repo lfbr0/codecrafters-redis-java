@@ -5,11 +5,9 @@ import logger.Logger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -60,10 +58,15 @@ public class DefaultUserAuthenticationManager {
         return Optional.ofNullable(defaultHash.get());
     }
 
-    public boolean passwordMatches(String password) {
-        return getPasswordHash()
+    public boolean tryAuthenticate(String password, UUID clientUUID) {
+        boolean passwordMatches = getPasswordHash()
                 .map(hash -> hash.equals( computeHash(password) ))
                 .orElse(false);
+
+        if (passwordMatches)
+            authenticatedUserIds.add(clientUUID);
+
+        return  passwordMatches;
     }
 
     public boolean userIsAuthenticated(UUID clientUUID) {
