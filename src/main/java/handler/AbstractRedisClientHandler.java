@@ -5,6 +5,7 @@ import commands.Command;
 import commands.CommandContext;
 import commands.CommandResponse;
 import commands.CommandRouter;
+import commands.impl.auth.AuthCommand;
 import data.AofPersistenceManager;
 import logger.Logger;
 import pubsub.PubSubManager;
@@ -50,11 +51,6 @@ public abstract class AbstractRedisClientHandler implements Runnable {
             return null;
         }
 
-        // only allow authenticated requests
-        if (!DefaultUserAuthenticationManager.getInstance().userIsAuthenticated(clientUUID)) {
-            return CommandResponse.error("NOAUTH Authentication required.");
-        }
-
         CommandContext ctx = new CommandContext(
                 clientUUID,
                 outputStream,
@@ -69,6 +65,11 @@ public abstract class AbstractRedisClientHandler implements Runnable {
         Logger.info("Context info: " + ctx);
         String commandName = (String) elements.getFirst().getContent();
         Command command = CommandRouter.getCommand(commandName);
+
+        // only allow authenticated requests unless auth command
+        if (!DefaultUserAuthenticationManager.getInstance().userIsAuthenticated(clientUUID) && !(command instanceof AuthCommand)) {
+            return CommandResponse.error("NOAUTH Authentication required.");
+        }
 
         // if in subcriber mode, cannot execute non pub/sub commands if client has subs
         if (!command.isSubscriberModeAllowedCommand() && PubSubManager.getInstance().getClientSubscriptions(clientUUID) > 0) {
